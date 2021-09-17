@@ -1,0 +1,20 @@
+[
+  {
+    "id": 28525998,
+    "type": "spot",
+    "subtype": "",
+    "state": "working"
+  },
+  {
+    "id": 28538600,
+    "type": "otc",
+    "subtype": "",
+    "state": "working"
+  },
+  {
+    "id": 28716384,
+    "type": "margin",
+    "subtype": "btcusdt",
+    "state": "working"
+  }
+]

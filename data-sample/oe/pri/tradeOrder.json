@@ -1,0 +1,28 @@
+{
+  "Fail Result": {
+    "code": "1",
+    "data": [
+      {
+        "clOrdId": "",
+        "ordId": "",
+        "sCode": "51005",
+        "sMsg": "Order amount exceeds the limit. ",
+        "tag": ""
+      }
+    ],
+    "msg": ""
+  },
+  "Success Result": {
+    "code": "0",
+    "data": [
+      {
+        "clOrdId": "",
+        "ordId": "341317443620612856",
+        "sCode": "0",
+        "sMsg": "",
+        "tag": ""
+      }
+    ],
+    "msg": ""
+  }
+}

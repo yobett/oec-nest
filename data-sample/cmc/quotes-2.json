@@ -1,0 +1,46 @@
+{
+  "BTC": {
+    "id": 1,
+    "name": "Bitcoin",
+    "symbol": "BTC",
+    "slug": "bitcoin",
+    "cmc_rank": 1,
+    "last_updated": "2021-06-11T04:50:02.000Z",
+    "quote": {
+      "USD": {
+        "price": 36974.67379172423,
+        "volume_24h": 43409938204.57372,
+        "percent_change_1h": 0.75345507,
+        "percent_change_24h": 0.45718371,
+        "percent_change_7d": -1.94486327,
+        "percent_change_30d": -35.67176449,
+        "percent_change_60d": -38.61045626,
+        "percent_change_90d": -34.61406187,
+        "market_cap": 692611881896.3533,
+        "last_updated": "2021-06-11T04:50:02.000Z"
+      }
+    }
+  },
+  "ETH": {
+    "id": 1027,
+    "name": "Ethereum",
+    "symbol": "ETH",
+    "slug": "ethereum",
+    "cmc_rank": 2,
+    "last_updated": "2021-06-11T04:50:02.000Z",
+    "quote": {
+      "USD": {
+        "price": 2477.125285268905,
+        "volume_24h": 28282260546.3849,
+        "percent_change_1h": 0.62063112,
+        "percent_change_24h": -2.80639837,
+        "percent_change_7d": -9.3040312,
+        "percent_change_30d": -42.40678825,
+        "percent_change_60d": 14.85682599,
+        "percent_change_90d": 40.83937799,
+        "market_cap": 287947052353.48175,
+        "last_updated": "2021-06-11T04:50:02.000Z"
+      }
+    }
+  }
+}

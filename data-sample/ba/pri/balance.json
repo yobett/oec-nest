@@ -1,0 +1,76 @@
+{
+  "makerCommission": 10,
+  "takerCommission": 10,
+  "buyerCommission": 0,
+  "sellerCommission": 0,
+  "canTrade": true,
+  "canWithdraw": true,
+  "canDeposit": true,
+  "updateTime": 1622772450699,
+  "accountType": "SPOT",
+  "balances": [
+    {
+      "asset": "LTC",
+      "free": "0.00065582",
+      "locked": "0.00000000"
+    },
+    {
+      "asset": "USDT",
+      "free": "4622.86535409",
+      "locked": "0.00000000"
+    },
+    {
+      "asset": "TRX",
+      "free": "0.18548922",
+      "locked": "0.00000000"
+    },
+    {
+      "asset": "XLM",
+      "free": "0.23141469",
+      "locked": "0.00000000"
+    },
+    {
+      "asset": "RLC",
+      "free": "0.00700000",
+      "locked": "0.00000000"
+    },
+    {
+      "asset": "BTT",
+      "free": "0.81643455",
+      "locked": "0.00000000"
+    },
+    {
+      "asset": "DOGE",
+      "free": "0.05136778",
+      "locked": "0.00000000"
+    },
+    {
+      "asset": "IDRT",
+      "free": "0.00",
+      "locked": "0.00"
+    },
+    {
+      "asset": "BIDR",
+      "free": "0.00",
+      "locked": "0.00"
+    },
+    {
+      "asset": "COMP",
+      "free": "0.00026481",
+      "locked": "0.00000000"
+    },
+    {
+      "asset": "BVND",
+      "free": "0.00",
+      "locked": "0.00"
+    },
+    {
+      "asset": "SHIB",
+      "free": "0.95",
+      "locked": "0.00"
+    }
+  ],
+  "permissions": [
+    "SPOT"
+  ]
+}

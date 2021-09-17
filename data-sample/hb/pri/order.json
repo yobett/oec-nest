@@ -1,0 +1,17 @@
+{
+  "id": 285211367622781,
+  "symbol": "lunausdt",
+  "account-id": 28556898,
+  "client-order-id": "",
+  "amount": "127.170000000000000000",
+  "price": "6.100000000000000000",
+  "created-at": 1621927203653,
+  "type": "buy-limit",
+  "field-amount": "127.170000000000000000",
+  "field-cash-amount": "775.737000000000000000",
+  "field-fees": "0.254340000000000000",
+  "finished-at": 1621927213672,
+  "source": "spot-web",
+  "state": "filled",
+  "canceled-at": 0
+}

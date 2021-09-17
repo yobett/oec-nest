@@ -1,0 +1,73 @@
+{
+  "status": {
+    "timestamp": "2021-06-10T09:01:17.813Z",
+    "error_code": 0,
+    "error_message": null,
+    "elapsed": 23,
+    "credit_count": 1,
+    "notice": null
+  },
+  "data": {
+    "BTC": {
+      "id": 1,
+      "name": "Bitcoin",
+      "symbol": "BTC",
+      "slug": "bitcoin",
+      "num_market_pairs": 9723,
+      "date_added": "2013-04-28T00:00:00.000Z",
+      "tags": [
+        "mineable",
+        "pow",
+        "sha-256",
+        "store-of-value",
+        "state-channels",
+        "coinbase-ventures-portfolio",
+        "three-arrows-capital-portfolio",
+        "polychain-capital-portfolio",
+        "binance-labs-portfolio",
+        "arrington-xrp-capital",
+        "blockchain-capital-portfolio",
+        "boostvc-portfolio",
+        "cms-holdings-portfolio",
+        "dcg-portfolio",
+        "dragonfly-capital-portfolio",
+        "electric-capital-portfolio",
+        "fabric-ventures-portfolio",
+        "framework-ventures",
+        "galaxy-digital-portfolio",
+        "huobi-capital",
+        "alameda-research-portfolio",
+        "a16z-portfolio",
+        "1confirmation-portfolio",
+        "winklevoss-capital",
+        "usv-portfolio",
+        "placeholder-ventures-portfolio",
+        "pantera-capital-portfolio",
+        "multicoin-capital-portfolio",
+        "paradigm-xzy-screener"
+      ],
+      "max_supply": 21000000,
+      "circulating_supply": 18731443,
+      "total_supply": 18731443,
+      "is_active": 1,
+      "platform": null,
+      "cmc_rank": 1,
+      "is_fiat": 0,
+      "last_updated": "2021-06-10T09:00:02.000Z",
+      "quote": {
+        "USD": {
+          "price": 36428.88649804603,
+          "volume_24h": 49764608164.49361,
+          "percent_change_1h": -1.48477724,
+          "percent_change_24h": 6.94166612,
+          "percent_change_7d": -6.17562887,
+          "percent_change_30d": -34.16885007,
+          "percent_change_60d": -39.24684204,
+          "percent_change_90d": -35.84672197,
+          "market_cap": 682365610991.6188,
+          "last_updated": "2021-06-10T09:00:02.000Z"
+        }
+      }
+    }
+  }
+}

@@ -204,10 +204,9 @@ export class HbPriApiService {
       type: `${order.side}-${order.type}`
     };
     // amount: 订单交易量（市价买单为订单交易额）
-    if (order.side === 'buy') {
+    if (order.side === 'buy' && order.type === 'market') {
       paramObj.amount = '' + order.quoteQuantity;
-      // TODO: order.type === 'limit' ?
-    } else { // sell
+    } else { // sell / limit
       paramObj.amount = '' + order.quantity;
     }
     if (order.type === 'limit') {

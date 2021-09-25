@@ -6,13 +6,24 @@ import { CancelOrderForm, OrderForm } from './order-form';
 import { API } from '../../models/sys/exapi';
 import { Exch } from '../../models/sys/exch';
 import { effectDigitsTransform } from '../../common/utils';
+import { BaPubApiService } from './ba/ba-pub-api.service';
+
+
+type BaExchangeInfo = {
+  symbols: {
+    filters: {
+      filterType: string
+    }[]
+  }[]
+}
 
 @Injectable()
 export class ExPriApiService {
 
   constructor(private baPriService: BaPriApiService,
               private oePriService: OePriApiService,
-              private hbPriService: HbPriApiService) {
+              private hbPriService: HbPriApiService,
+              private baPubApiService: BaPubApiService,) {
 
   }
 
@@ -22,11 +33,39 @@ export class ExPriApiService {
     if (!api) {
       throw new Error(`API未配置（${ex}）`);
     }
-    if (form.quantity) {
-      form.quantity = +effectDigitsTransform(form.quantity);
+    let digits = 5;
+    const quantityByQuote = !!form.quoteQuantity;
+
+    if (ex === Exch.CODE_BA) {
+      try {
+        const info: BaExchangeInfo = await this.baPubApiService.exchangeInfo(form.symbol);
+        if (info.symbols && info.symbols.length > 0) {
+          const params = info.symbols[0];
+          const filters: any[] = params.filters;
+          const filterType = quantityByQuote ? 'MARKET_LOT_SIZE' : 'LOT_SIZE';
+          const filterLotSize = filters.find(f => f.filterType === filterType);
+          if (filterLotSize) {
+            let stepSize: string = filterLotSize.stepSize;
+            if (/^[^0]\./.test(stepSize)) { // 1.00000000
+              digits = 0;
+            } else { // 0.00010000
+              stepSize = stepSize.substr(2);
+              const oi = stepSize.indexOf('1');
+              if (oi >= 0) {
+                digits = oi + 1;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
-    if (form.quoteQuantity) {
-      form.quoteQuantity = +effectDigitsTransform(form.quoteQuantity);
+
+    if (quantityByQuote) {
+      form.quoteQuantity = +effectDigitsTransform(form.quoteQuantity, digits);
+    } else {
+      form.quantity = +effectDigitsTransform(form.quantity, digits);
     }
     if (form.price) {
       form.price = +effectDigitsTransform(form.price);

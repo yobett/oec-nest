@@ -127,7 +127,7 @@ export class HbPriSyncService {
 
 
   private async syncOrders(pair: ExPair, odrs: any[], syncResult: SyncResult): Promise<void> {
-    const clientOrderIds: string[] = [];
+    odrs.sort((o1, o2) => (+o1['finished-at']) - (+o2['finished-at']));
     for (const odr of odrs) {
       let theOrder = await this.spotOrderService.findByOrderId(this.exchCode, '' + odr.id);
       if (theOrder) {
@@ -148,16 +148,12 @@ export class HbPriSyncService {
         HbPriSyncService.setNewOrderProps(order, odr);
         theOrder = await this.spotOrderService.create(order);
         if (order.clientOrderId) {
-          clientOrderIds.push(order.clientOrderId);
+          const strategy = await this.strategiesService.findByExAndClientOrderId(this.exchCode, order.clientOrderId);
+          if (strategy) {
+            await this.strategiesService.completeStrategy(strategy);
+          }
         }
         syncResult.create++;
-      }
-
-      for (const clientOrderId of clientOrderIds) {
-        const strategy = await this.strategiesService.findByExAndClientOrderId(this.exchCode, clientOrderId);
-        if (strategy) {
-          await this.strategiesService.completeStrategy(strategy);
-        }
       }
 
       await this.lastTransactionService.syncFromOrder(theOrder);

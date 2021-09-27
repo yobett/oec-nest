@@ -130,7 +130,7 @@ export class HbPriApiService {
   }
 
   async orders(api: API, symbol: string, opts?: { fromDate?: string | number, fromOrderId?: string }): Promise<any[]> {
-    const states = 'created,submitted,partial-filled,filled,partial-canceled,canceled';
+    const states = 'created,partial-filled,filled,partial-canceled,canceled'; // submitted
     let params: ParamPairs = [
       ['symbol', symbol],
       ['states', encodeURIComponent(states)]

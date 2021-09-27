@@ -106,9 +106,9 @@ export class BaPriSyncService {
   private async syncOrders(api: API, baseCcy: string, quoteCcy: string, symbol: string, syncResult: SyncResult): Promise<void> {
 
     const latestOrder = await this.spotOrderService.latestOrderForExPair(this.exchCode, symbol);
-    const clientOrderIds: string[] = [];
 
     const odrs = await this.baPriService.orders(api, symbol, latestOrder ? latestOrder.orderId : null);
+    odrs.sort((o1, o2) => (+o1.updateTime) - (+o2.updateTime));
     for (const odr of odrs) {
       if (odr.status.toLowerCase() === 'new') {
         continue;
@@ -132,16 +132,12 @@ export class BaPriSyncService {
         BaPriSyncService.setNewOrderProps(order, odr);
         theOrder = await this.spotOrderService.create(order);
         if (order.clientOrderId) {
-          clientOrderIds.push(order.clientOrderId);
+          const strategy = await this.strategiesService.findByExAndClientOrderId(this.exchCode, order.clientOrderId);
+          if (strategy) {
+            await this.strategiesService.completeStrategy(strategy);
+          }
         }
         syncResult.create++;
-      }
-
-      for (const clientOrderId of clientOrderIds) {
-        const strategy = await this.strategiesService.findByExAndClientOrderId(this.exchCode, clientOrderId);
-        if (strategy) {
-          await this.strategiesService.completeStrategy(strategy);
-        }
       }
 
       await this.lastTransactionService.syncFromOrder(theOrder);

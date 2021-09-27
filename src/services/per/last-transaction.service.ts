@@ -36,7 +36,8 @@ export class LastTransactionService {
   async syncFromOrder(order: SpotOrder): Promise<void> {
 
     if (order.status) {
-      if (order.status.toLowerCase() === 'canceled') {
+      const status = order.status.toLowerCase();
+      if (status === 'canceled' || status === 'submitted') {
         return;
       }
     }

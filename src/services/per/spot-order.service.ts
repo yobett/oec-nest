@@ -74,7 +74,7 @@ export class SpotOrderService {
         where.pairSymbol = Like(`%${pairSymbolLike}%`);
       }
     }
-    const order = (sorter && sorter.sort) ? {[sorter.sort]: sorter.sortDir} : null;
+    const order: any = (sorter && sorter.sort) ? {[sorter.sort]: sorter.sortDir} : {createTs: 'DESC'};
     const [list, count] = await this.orderRepository.findAndCount({
       where,
       order,
@@ -123,10 +123,16 @@ export class SpotOrderService {
   }
 
   async create(dto: CreateSpotOrderDto): Promise<SpotOrder> {
+    if (dto.updateTs === 0 || dto.updateTs === null) {
+      dto.updateTs = dto.createTs;
+    }
     return this.orderRepository.save(dto);
   }
 
   async update(id: number, dto: UpdateSpotOrderDto): Promise<void> {
+    if (dto.updateTs === 0 || dto.updateTs === null) {
+      delete dto.updateTs;
+    }
     await this.orderRepository.update(id, dto);
   }
 

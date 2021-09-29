@@ -192,31 +192,35 @@ export class CurrentPriceService {
     return leftPairs;
   }
 
-  async inquireConcernedPrices(): Promise<CurrentPrices> {
+  async inquireConcernedPrices(preferDS: string = null): Promise<CurrentPrices> {
 
     const pairs = await this.pairsRepository.find({concerned: true});
 
     const prices: CurrentPrices = {};
     let leftPairs: ExPair[] = pairs;
 
-    // console.log('1 Inquire Prices, All: ' + leftPairs.map(p => `${p.baseCcy}-${p.quoteCcy}`).join(' '));
-    leftPairs = await this.inquirePricesBA(leftPairs, prices);
-    if (leftPairs.length === 0) {
-      return prices;
-    }
+    const actions = {
+      [Exch.CODE_BA]: (leftPairs, prices) => this.inquirePricesBA(leftPairs, prices),
+      [Exch.CODE_HB]: (leftPairs, prices) => this.inquirePricesHB(leftPairs, prices),
+      [Exch.CODE_OE]: (leftPairs, prices) => this.inquirePricesOE(leftPairs, prices),
+    };
 
-    // console.log('2 Inquire Prices, After BA: ' + leftPairs.map(p => `${p.baseCcy}-${p.quoteCcy}`).join(' '));
-    leftPairs = await this.inquirePricesHB(leftPairs, prices);
-    if (leftPairs.length === 0) {
-      return prices;
-    }
+    const exchs = [Exch.CODE_BA, Exch.CODE_HB, Exch.CODE_OE];
+    const dataSources = preferDS ? [preferDS].concat(exchs.filter(ex => ex !== preferDS)) : exchs;
 
-    // console.log('3 Inquire Prices, After HB: ' + leftPairs.map(p => `${p.baseCcy}-${p.quoteCcy}`).join(' '));
-    leftPairs = await this.inquirePricesOE(leftPairs, prices);
-    if (leftPairs.length === 0) {
-      return prices;
+    for (let dsi = 0; dsi < dataSources.length; dsi++) {
+      const ds = dataSources[dsi];
+      const action = actions[ds];
+      if (!action) {
+        throw new Error('未知交易所');
+      }
+      // const pairsStr = leftPairs.map(p => `${p.baseCcy}-${p.quoteCcy}`).join(' ');
+      // console.log(`${dsi} Inquire Prices ${ds}: ${pairsStr}`);
+      leftPairs = await action(leftPairs, prices);
+      if (leftPairs.length === 0) {
+        return prices;
+      }
     }
-    // console.log('4 Inquire Prices, After OE: ' + leftPairs.map(p => `${p.baseCcy}-${p.quoteCcy}`).join(' '));
 
     return prices;
   }

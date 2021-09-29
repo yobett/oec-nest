@@ -94,8 +94,8 @@ export class PairsController {
   }
 
   @Post('concern/inquirePrices')
-  async inquireConcernedPrices(): Promise<ValueResult<CurrentPrices>> {
-    const prices = await this.currentPriceService.inquireConcernedPrices();
+  async inquireConcernedPrices(@Query('preferDS') preferDS: string = null): Promise<ValueResult<CurrentPrices>> {
+    const prices = await this.currentPriceService.inquireConcernedPrices(preferDS);
     return ValueResult.value(prices);
   }
 

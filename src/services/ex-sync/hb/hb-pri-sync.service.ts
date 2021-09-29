@@ -127,7 +127,7 @@ export class HbPriSyncService {
 
 
   private async syncOrders(pair: ExPair, odrs: any[], syncResult: SyncResult): Promise<void> {
-    odrs.sort((o1, o2) => (+o1['finished-at']) - (+o2['finished-at']));
+    // odrs.sort((o1, o2) => (+o1['finished-at']) - (+o2['finished-at']));
     for (const odr of odrs) {
       let theOrder = await this.spotOrderService.findByOrderId(this.exchCode, '' + odr.id);
       if (theOrder) {

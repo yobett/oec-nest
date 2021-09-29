@@ -108,7 +108,7 @@ export class BaPriSyncService {
     const latestOrder = await this.spotOrderService.latestOrderForExPair(this.exchCode, symbol);
 
     const odrs = await this.baPriService.orders(api, symbol, latestOrder ? latestOrder.orderId : null);
-    odrs.sort((o1, o2) => (+o1.updateTime) - (+o2.updateTime));
+    // odrs.sort((o1, o2) => (+o1.updateTime) - (+o2.updateTime));
     for (const odr of odrs) {
       if (odr.status.toLowerCase() === 'new') {
         continue;

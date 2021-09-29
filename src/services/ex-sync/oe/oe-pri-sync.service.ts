@@ -122,7 +122,7 @@ export class OePriSyncService {
     const pairsMap = new Map<string, ExPair>()
     const clientOrderIds: string[] = [];
 
-    odrs.sort((o1, o2) => (+o1.uTime) - (+o2.uTime));
+    // odrs.sort((o1, o2) => (+o1.uTime) - (+o2.uTime));
     for (const odr of odrs) {
       let theOrder = await this.spotOrderService.findByOrderId(this.exchCode, odr.ordId);
       if (theOrder) {

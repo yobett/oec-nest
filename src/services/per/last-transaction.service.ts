@@ -54,7 +54,9 @@ export class LastTransactionService {
 
     const lastTrans = await this.findTransaction(order.baseCcy, order.quoteCcy);
     if (lastTrans) {
-      await this.update(lastTrans.id, udto);
+      if (order.updateTs && lastTrans.updateTs && order.updateTs > lastTrans.updateTs) {
+        await this.update(lastTrans.id, udto);
+      }
     } else {
       const cdto: CreateLastTransDto = {
         baseCcy: order.baseCcy,

@@ -8,6 +8,24 @@ export class Strategy extends Model {
   static TypeLS = 'LS';
   static TypeHB = 'HB';
 
+  constructor(type: string) {
+    super();
+    this.type = type;
+    if (this.type === Strategy.TypeHS) {
+      this.watchDirection = 'up';
+      this.side = 'sell';
+    } else if (this.type === Strategy.TypeHB) {
+      this.watchDirection = 'up';
+      this.side = 'buy';
+    } else if (this.type === Strategy.TypeLS) {
+      this.watchDirection = 'down';
+      this.side = 'sell';
+    } else if (this.type === Strategy.TypeLB) {
+      this.watchDirection = 'down';
+      this.side = 'buy';
+    }
+  }
+
   @Column()
   ex: string;
   @Column()
@@ -77,6 +95,9 @@ export class Strategy extends Model {
 
   @Column({nullable: true})
   completedAt: Date;
+
+  @Column({nullable: true})
+  autoStartNext: boolean;
 
   @Column()
   watchLevel: 'loose' | 'medium' | 'intense';

@@ -318,7 +318,7 @@ export class StrategyExecutorService {
 
       await this.doTrade(strategy, options);
 
-      await this.doAfterTrade(strategy, options);
+      await this.doAfterTrade(strategy, currentPrice, options);
     }
 
     return;
@@ -345,10 +345,8 @@ export class StrategyExecutorService {
       if (available < 1e-2) { // TODO:
         throw new Error('可用余额不足');
       }
-      const percent = Math.min(strategy.tradeVolPercent, 99.9);
-      volume = available * percent / 100.0;
+      volume = available * strategy.tradeVolPercent / 100.0;
     }
-    // TODO: BA filters
 
     const orderForm = new OrderForm();
     orderForm.side = strategy.side;
@@ -396,9 +394,12 @@ export class StrategyExecutorService {
   }
 
   private async doAfterTrade(strategy: Strategy,
+                             currentPrice: number,
                              options: StrategyExecutionOptions = {}) {
-    // const nextStrategy = await this.strategiesService.findOrInstantiateNext(strategy, currentPrice);
-    // this.logger.log('Next Strategy: ' + nextStrategy.id);
+    const nextStrategy = await this.strategiesService.tryInstantiateNext(strategy, currentPrice);
+    if (nextStrategy) {
+      this.logger.log('Next Strategy: ' + nextStrategy.id);
+    }
 
     if (!options.skipSyncAfterPlacedOrder) {
       setTimeout(() => {

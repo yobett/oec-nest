@@ -60,8 +60,12 @@ export function defaultReqConfig(): AxiosRequestConfig {
   return requestConfig;
 }
 
-// 取有效位，1234.567 -> 1234.6, 0.001201100003 -> 0.0012011
-export function effectDigitsTransform(val: string | number, digits = 5): string {
+// type=effect: 指定有效位，type=fraction：指定小数位
+// floor：向下取整
+export function roundNumber(val: string | number,
+                            digits = 5,
+                            type: 'effect' | 'fraction' = 'effect',
+                            floor = false): string {
   if (typeof val === 'undefined') {
     return '';
   }
@@ -87,24 +91,51 @@ export function effectDigitsTransform(val: string | number, digits = 5): string 
     const index = /[eE]-\d+$/.exec(str).index;
     const ns = str.substring(0, index);
     const ep = str.substring(index);
-    const nss = effectDigitsTransform(ns, digits);
+    const nss = roundNumber(ns, digits, type, floor);
     return nss + ep;
   }
   const di = str.indexOf('.');
   if (di === -1) {
     return str;
   }
-  if (str.length - 1 <= digits) {
+  if (type === 'effect' && str.length - 1 <= digits) {
     return str;
   }
-  if (!str.startsWith('0.')) {
-    let frac = digits - di;
-    if (frac < 0) {
-      frac = 0;
-    }
-    return num.toFixed(frac);
+  if (type === 'fraction' && str.length - 1 <= di + digits) {
+    return str;
   }
-  let fraction = digits;
+
+  let fractionDigits;
+  if (type === 'fraction') {
+    fractionDigits = digits;
+  } else {
+    fractionDigits = digits - di;
+    if (fractionDigits < 0) {
+      fractionDigits = 0;
+    }
+    if (str.startsWith('0.')) {
+      fractionDigits++;
+    }
+  }
+
+  if (type === 'fraction') {
+    if (floor) {
+      return str.substr(0, di + 1 + fractionDigits);
+    }
+    return num.toFixed(fractionDigits);
+  }
+
+  // type === 'effect'
+
+  if (!str.startsWith('0.')) {
+    if (floor) {
+      return str.substr(0, digits + 1);
+    }
+    return num.toFixed(fractionDigits);
+  }
+
+  // 0.0*x
+  let fraction = fractionDigits;
   for (let i = 2; i < str.length; i++) {
     if (str.charAt(i) === '0') {
       fraction++;
@@ -112,8 +143,11 @@ export function effectDigitsTransform(val: string | number, digits = 5): string 
       break;
     }
   }
-  if (fraction > str.length - di - 1) {
+  if (str.length <= fraction + 2) {
     return str;
+  }
+  if (floor) {
+    return str.substr(0, fraction + 2);
   }
   return num.toFixed(fraction);
 }

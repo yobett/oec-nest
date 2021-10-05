@@ -44,8 +44,8 @@ const EX_DATA_SYNC = {
 const Minute = 60 * 1000;
 
 const StrategyWatchInterval = {
-  loose: 2 * 60 * Minute,
-  medium: 30 * Minute,
+  loose: 80 * Minute,
+  medium: 20 * Minute,
   intense: 5 * Minute,
 };
 

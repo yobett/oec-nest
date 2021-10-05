@@ -26,8 +26,35 @@ export class StrategiesService {
   }
 
   async tryInstantiateNext(strategy: Strategy, currentPrice: number): Promise<Strategy | null> {
-    // this.logger.log('try instantiate next Strategy');
-    return null;
+    if (!strategy.autoStartNext) {
+      return null;
+    }
+    if (strategy.type !== Strategy.TypeLB && strategy.type !== Strategy.TypeHS) {
+      return null;
+    }
+    const {
+      ex, symbol, baseCcy, quoteCcy, applyOrder,
+      basePoint, expectingPercent, drawbackPercent,
+      tradeVolPercent, tradeVolByValue, tradeVol,
+      intenseWatchPercent, mediumWatchPercent,
+    } = strategy;
+
+    const nextType = strategy.type === Strategy.TypeLB ? Strategy.TypeHS : Strategy.TypeLB;
+    const next = new Strategy(nextType);
+    Object.assign(next, {
+      ex, symbol, baseCcy, quoteCcy, applyOrder,
+      basePoint, expectingPercent, drawbackPercent,
+      tradeVolPercent, tradeVolByValue, tradeVol,
+      intenseWatchPercent, mediumWatchPercent,
+    });
+
+    next.basePoint = currentPrice;
+    next.expectingPoint = basePoint * (100 + expectingPercent * (next.watchDirection === 'up' ? 1 : -1)) / 100.0;
+    next.watchLevel = 'loose';
+    next.status = 'started';
+
+    await this.create(next);
+    return next;
   }
 
 

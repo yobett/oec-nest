@@ -5,7 +5,7 @@ import { HbPriApiService } from './hb/hb-pri-api.service';
 import { CancelOrderForm, OrderForm } from './order-form';
 import { API } from '../../models/sys/exapi';
 import { Exch } from '../../models/sys/exch';
-import { effectDigitsTransform } from '../../common/utils';
+import { roundNumber } from '../../common/utils';
 import { BaPubApiService } from './ba/ba-pub-api.service';
 
 
@@ -34,6 +34,7 @@ export class ExPriApiService {
       throw new Error(`API未配置（${ex}）`);
     }
     let digits = 5;
+    let fractionDigits = false;
     const quantityByQuote = !!form.quoteQuantity;
 
     if (ex === Exch.CODE_BA) {
@@ -48,11 +49,13 @@ export class ExPriApiService {
             let stepSize: string = filterLotSize.stepSize;
             if (/^[^0]\./.test(stepSize)) { // 1.00000000
               digits = 0;
+              fractionDigits = true;
             } else { // 0.00010000
               stepSize = stepSize.substr(2);
               const oi = stepSize.indexOf('1');
               if (oi >= 0) {
                 digits = oi + 1;
+                fractionDigits = true;
               }
             }
           }
@@ -63,12 +66,14 @@ export class ExPriApiService {
     }
 
     if (quantityByQuote) {
-      form.quoteQuantity = +effectDigitsTransform(form.quoteQuantity, digits);
+      form.quoteQuantity = +roundNumber(form.quoteQuantity, digits,
+        fractionDigits ? 'fraction' : 'effect', true);
     } else {
-      form.quantity = +effectDigitsTransform(form.quantity, digits);
+      form.quantity = +roundNumber(form.quantity, digits,
+        fractionDigits ? 'fraction' : 'effect', true);
     }
     if (form.price) {
-      form.price = +effectDigitsTransform(form.price);
+      form.price = +roundNumber(form.price);
     }
     let value;
     if (ex === Exch.CODE_BA) {

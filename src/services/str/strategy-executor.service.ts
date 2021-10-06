@@ -153,8 +153,8 @@ export class StrategyExecutorService {
       toTrade = false;
     }
     const delta = currentPrice - strategy.tradingPoint;
-    const StrategyConfig = Config.StrategyConfig;
-    const tolerantDelta = basePoint * StrategyConfig.TradingPriceDeltaPercent / 100.0;
+    const executorConfig = Config.StrategyExecutorConfig;
+    const tolerantDelta = basePoint * executorConfig.TradingPriceDeltaPercent / 100.0;
     if (delta > tolerantDelta) {
       this.logger.warn('risen too much.');
       toTrade = false;
@@ -192,8 +192,8 @@ export class StrategyExecutorService {
       toTrade = false;
     }
     const delta = strategy.tradingPoint - currentPrice;
-    const StrategyConfig = Config.StrategyConfig;
-    const tolerantDelta = basePoint * StrategyConfig.TradingPriceDeltaPercent / 100.0;
+    const executorConfig = Config.StrategyExecutorConfig;
+    const tolerantDelta = basePoint * executorConfig.TradingPriceDeltaPercent / 100.0;
     if (delta > tolerantDelta) {
       this.logger.warn('dropped too much.');
       toTrade = false;
@@ -287,6 +287,18 @@ export class StrategyExecutorService {
       strategy.valleyTime = strategy.lastCheckAt;
     }
 
+    // 止损/跟涨
+    if (type === Strategy.TypeLS || type === Strategy.TypeHB) {
+      if (strategy.updateBasePoint) {
+        if ((type === Strategy.TypeLS && currentPrice > strategy.basePoint)
+          || (type === Strategy.TypeHB && currentPrice < strategy.basePoint)) {
+          this.logger.log(`BasePoint: ${strategy.basePoint} -> ${currentPrice}`);
+          strategy.basePoint = currentPrice;
+          Strategy.setExpectingPoint(strategy);
+        }
+      }
+    }
+
     let toTrade = true;
     if (type === Strategy.TypeLB) {
       toTrade = this.checkTradingPointLB(strategy, currentPrice, options);
@@ -342,7 +354,12 @@ export class StrategyExecutorService {
       }
       volume = strategy.tradeVol;
     } else {
-      if (available < 1e-2) { // TODO:
+      const executorConfig = Config.StrategyExecutorConfig;
+      if (assetCcy === 'USDT') {
+        if (available < executorConfig.MinAssetUsdtAvailable) {
+          throw new Error('可用余额不足');
+        }
+      } else if (available < executorConfig.MinAssetAvailable) {
         throw new Error('可用余额不足');
       }
       volume = available * strategy.tradeVolPercent / 100.0;

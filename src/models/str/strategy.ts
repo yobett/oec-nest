@@ -17,9 +17,11 @@ export class Strategy extends Model {
     } else if (this.type === Strategy.TypeHB) {
       this.watchDirection = 'up';
       this.side = 'buy';
+      this.updateBasePoint = true;
     } else if (this.type === Strategy.TypeLS) {
       this.watchDirection = 'down';
       this.side = 'sell';
+      this.updateBasePoint = true;
     } else if (this.type === Strategy.TypeLB) {
       this.watchDirection = 'down';
       this.side = 'buy';
@@ -99,10 +101,18 @@ export class Strategy extends Model {
   @Column({nullable: true})
   autoStartNext: boolean;
 
+  @Column({nullable: true})
+  updateBasePoint: boolean;
+
   @Column()
   watchLevel: 'loose' | 'medium' | 'intense';
   @Column()
   status: 'initial' | 'started' | 'paused' | 'placed' | 'completed';
+
+  static setExpectingPoint(strategy: Strategy): void {
+    const sign = strategy.watchDirection === 'up' ? 1 : -1;
+    strategy.expectingPoint = strategy.basePoint * (100 + strategy.expectingPercent * sign) / 100.0;
+  }
 }
 
 export interface StrategyFilter {

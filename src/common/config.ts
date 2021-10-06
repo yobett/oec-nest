@@ -49,8 +49,10 @@ const StrategyWatchInterval = {
   intense: 5 * Minute,
 };
 
-const StrategyConfig = {
-  TradingPriceDeltaPercent: 1
+const StrategyExecutorConfig = {
+  TradingPriceDeltaPercent: 1,
+  MinAssetUsdtAvailable: 10,
+  MinAssetAvailable: 1e-2
 }
 
 const OrderIdPrefix = 'oec';
@@ -76,7 +78,7 @@ export const Config = {
   CMC_API,
   EX_DATA_SYNC,
   StrategyWatchInterval,
-  StrategyConfig,
+  StrategyExecutorConfig,
   ClientOrderIdPrefixes,
   PlaceOrderSyncDelay
 }

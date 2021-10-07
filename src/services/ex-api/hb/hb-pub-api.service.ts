@@ -4,6 +4,13 @@ import { Config } from '../../../common/config';
 import { defaultReqConfig } from '../../../common/utils';
 import { Kline } from '../../../models/mar/kline';
 
+export type HbDepthData = {
+  ts: number,
+  version: number,
+  bids: [[price: number, amount: number]],
+  asks: [[price: number, amount: number]]
+};
+
 @Injectable()
 export class HbPubApiService {
 
@@ -73,6 +80,12 @@ export class HbPubApiService {
         // vol: amount, volQuote: vol
       } as Kline;
     });
+  }
+
+  async depth(symbol: string, type = 'step3', depth = 20): Promise<HbDepthData> {
+    // type: step0，step1，step2，step3，step4，step5
+    const body = await this.getData(`/market/depth?symbol=${symbol}&type=${type}&depth=${depth}`);
+    return body.tick as HbDepthData;
   }
 
 }

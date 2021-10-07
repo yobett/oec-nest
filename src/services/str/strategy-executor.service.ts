@@ -4,7 +4,7 @@ import { Strategy } from '../../models/str/strategy';
 import { Config } from '../../common/config';
 import { CurrentPriceService } from '../mar/current-price.service';
 import { OrderForm } from '../ex-api/order-form';
-import { ExPriApiService } from '../ex-api/ex-pri-api.service';
+import { ExPlaceOrderService } from '../ex-sync/ex-place-order.service';
 import { AssetService } from '../per/asset.service';
 import { API } from '../../models/sys/exapi';
 import { ExapisService } from '../sys/exapis.service';
@@ -30,7 +30,7 @@ export class StrategyExecutorService {
 
   constructor(private strategiesService: StrategiesService,
               private currentPriceService: CurrentPriceService,
-              private exPriApiService: ExPriApiService,
+              private exPriApiService: ExPlaceOrderService,
               private assetService: AssetService,
               private exapisService: ExapisService,
               private exPriSyncService: ExPriSyncService,

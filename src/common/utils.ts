@@ -60,6 +60,17 @@ export function defaultReqConfig(): AxiosRequestConfig {
   return requestConfig;
 }
 
+export function toFixedDown(val: string | number,
+                            digits = 2): string {
+  return roundDown(val, digits, 'fraction');
+}
+
+export function roundDown(val: string | number,
+                          digits = 5,
+                          type: 'effect' | 'fraction' = 'effect'): string {
+  return roundNumber(val, digits, type, true);
+}
+
 // type=effect: 指定有效位，type=fraction：指定小数位
 // floor：向下取整
 export function roundNumber(val: string | number,

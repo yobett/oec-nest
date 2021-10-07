@@ -32,6 +32,7 @@ import { Exapi } from '../models/sys/exapi';
 import { ExPriSyncService } from './ex-sync/ex-pri-sync.service';
 import { ExPubSyncService } from './ex-sync/ex-pub-sync.service';
 import { CurrentPriceService } from './mar/current-price.service';
+import { MarketDepthService } from './mar/market-depth.service';
 import { Strategy } from '../models/str/strategy';
 import { StrategiesService } from './str/strategies.service';
 import { StrategyExecutorService } from './str/strategy-executor.service';
@@ -41,16 +42,17 @@ import { AssetSnapshot } from '../models/per/asset-snapshot';
 import { AssetSnapshotService } from './per/asset-snapshot.service';
 import { AssetEvaluatorService } from './per/asset-evaluator.service';
 import { NotificationService } from './sys/notification.service';
+import { ExPlaceOrderService } from './ex-sync/ex-place-order.service';
 
 const services: Provider[] = [
   UsersService, ExchsService, ExapisService, NotificationService,
-  CcysService, ExPairsService, CurrentPriceService,
+  CcysService, ExPairsService, CurrentPriceService, MarketDepthService,
   AssetService, AssetSnapshotService, AssetEvaluatorService,
   SpotOrderService, LastTransactionService,
   BaPubSyncService, BaPriSyncService,
   OePubSyncService, OePriSyncService,
   HbPubSyncService, HbPriSyncService,
-  CmcSyncService, ExPriSyncService, ExPubSyncService,
+  CmcSyncService, ExPriSyncService, ExPubSyncService, ExPlaceOrderService,
   StrategiesService, StrategyExecutorService, HistoryStrategiesService
 ];
 

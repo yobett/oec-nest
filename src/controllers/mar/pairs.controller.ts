@@ -14,6 +14,7 @@ import { BaPubApiService } from '../../services/ex-api/ba/ba-pub-api.service';
 import { OePubApiService } from '../../services/ex-api/oe/oe-pub-api.service';
 import { HbPubApiService } from '../../services/ex-api/hb/hb-pub-api.service';
 import { Exch } from '../../models/sys/exch';
+import { HbPubSyncService } from '../../services/ex-sync/hb/hb-pub-sync.service';
 
 declare type PnLT = ExPair & { lastTrans: LastTransaction };
 
@@ -26,7 +27,8 @@ export class PairsController {
               private ltService: LastTransactionService,
               private baPubApiService: BaPubApiService,
               private oePubApiService: OePubApiService,
-              private hbPubApiService: HbPubApiService) {
+              private hbPubApiService: HbPubApiService,
+              private hbPubSyncService: HbPubSyncService) {
   }
 
   @Get('page')
@@ -113,9 +115,7 @@ export class PairsController {
       }
       return ValueResult.value(info);
     } else if (ex === Exch.CODE_HB) {
-      // TODO:
-      const symbols = await this.hbPubApiService.symbols();
-      const symbolInfo = symbols.find(s => s.symbol === symbol);
+      const symbolInfo = await this.hbPubSyncService.getSymbolInfo(symbol);
       return ValueResult.value(symbolInfo || {});
     }
     return ValueResult.value({});

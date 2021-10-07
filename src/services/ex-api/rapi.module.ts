@@ -7,13 +7,12 @@ import { BaPriApiService } from './ba/ba-pri-api.service';
 import { HbPubApiService } from './hb/hb-pub-api.service';
 import { HbPriApiService } from './hb/hb-pri-api.service';
 import { CmcApiService } from './cmc/cmc-api.service';
-import { ExPriApiService } from './ex-pri-api.service';
 
 const services: Provider[] = [
   OePubApiService, OePriApiService,
   BaPubApiService, BaPriApiService,
   HbPubApiService, HbPriApiService,
-  CmcApiService, ExPriApiService
+  CmcApiService
 ];
 
 @Module({

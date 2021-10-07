@@ -60,7 +60,7 @@ export class SpotOrderService {
   async page(pager: Pager, filter?: SpotOrderFilter, sorter?: Sorter): Promise<CountList<SpotOrder>> {
     const where: FindConditions<SpotOrder> = {};
     if (filter) {
-      const {ex, baseCcy, quoteCcy, pairSymbolLike} = filter;
+      const {ex, baseCcy, quoteCcy, pairSymbolLike, createTsTo} = filter;
       if (ex) {
         where.ex = ex;
       }
@@ -72,6 +72,9 @@ export class SpotOrderService {
       }
       if (pairSymbolLike) {
         where.pairSymbol = Like(`%${pairSymbolLike}%`);
+      }
+      if (!isNaN(createTsTo)) {
+        where.createTs = LessThan(+createTsTo);
       }
     }
     const order: any = (sorter && sorter.sort) ? {[sorter.sort]: sorter.sortDir} : {createTs: 'DESC'};

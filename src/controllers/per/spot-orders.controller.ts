@@ -18,7 +18,7 @@ import { ExapisService } from '../../services/sys/exapis.service';
 import { API } from '../../models/sys/exapi';
 import { CancelOrderForm, OrderForm } from '../../services/ex-api/order-form';
 import { ExPriSyncService } from '../../services/ex-sync/ex-pri-sync.service';
-import { ExPriApiService } from '../../services/ex-api/ex-pri-api.service';
+import { ExPlaceOrderService } from '../../services/ex-sync/ex-place-order.service';
 import { Config } from '../../common/config';
 import { ExchangePair } from '../../models/mar/ex-pair';
 
@@ -32,7 +32,7 @@ export class SpotOrdersController {
               private baPriService: BaPriApiService,
               private oePriService: OePriApiService,
               private hbPriService: HbPriApiService,
-              private exPriApiService: ExPriApiService,
+              private exPriApiService: ExPlaceOrderService,
               private exPriSyncService: ExPriSyncService,
               private pairsService: ExPairsService,
               private exapisService: ExapisService

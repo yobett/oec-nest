@@ -111,6 +111,7 @@ export interface SpotOrderFilter {
   pairSymbolLike?: string;
   baseCcy?: string;
   quoteCcy?: string;
+  createTsTo?: number;
 }
 
 export interface OrderTimeLineQueryForm {

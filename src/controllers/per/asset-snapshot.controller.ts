@@ -32,6 +32,12 @@ export class AssetSnapshotController {
     return ListResult.list(snapshots);
   }
 
+  @Get('ts/:ts')
+  async getSnapshots(@Param('ts') ts: number): Promise<ListResult<AssetSnapshot>> {
+    const snapshots: AssetSnapshot[] = await this.snapshotService.findByTs(+ts);
+    return ListResult.list(snapshots);
+  }
+
 
   @Get('ccy/:ccy')
   async list(

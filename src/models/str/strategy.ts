@@ -84,8 +84,6 @@ export class Strategy extends Model {
   beyondExpect: boolean;
 
   @Column({nullable: true})
-  firstCheckAt: Date;
-  @Column({nullable: true})
   lastCheckAt: Date;
   @Column({type: 'double', nullable: true})
   lastCheckPrice: number;

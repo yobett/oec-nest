@@ -35,6 +35,12 @@ export class AssetSnapshotService {
     });
   }
 
+  findByTs(ts: number): Promise<AssetSnapshot[]> {
+    return this.snapshotsRepository.find({
+      where: {ts},
+      order: {holdingValue: 'DESC'},
+    });
+  }
 
   async findLatest(): Promise<AssetSnapshot[]> {
     const all: AssetSnapshot[] = await this.find({ccy: AssetSnapshot.CcyAll, limit: 1});

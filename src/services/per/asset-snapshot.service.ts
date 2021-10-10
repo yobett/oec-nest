@@ -1,6 +1,6 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable } from '@nestjs/common';
-import { LessThan, Raw, Repository } from 'typeorm';
+import { LessThan, MoreThan, Raw, Repository } from 'typeorm';
 
 import { Asset } from '../../models/per/asset';
 import { AssetSnapshot, AssetSnapshotQueryForm } from '../../models/per/asset-snapshot';
@@ -25,6 +25,12 @@ export class AssetSnapshotService {
     if (queryForm.olderThan) {
       where.ts = LessThan(queryForm.olderThan);
     }
+    if (queryForm.newerThan) {
+      where.ts = MoreThan(queryForm.newerThan);
+    }
+    if (!isNaN(queryForm.hour)) {
+      where.hour = +queryForm.hour;
+    }
     if (queryForm.hourMod) {
       where.hour = Raw((alias) => `${alias} % ${queryForm.hourMod} = 0`);
     }
@@ -47,11 +53,7 @@ export class AssetSnapshotService {
     if (all.length === 0) {
       return [];
     }
-    const ts = all[0].ts;
-    return this.snapshotsRepository.find({
-      where: {ts},
-      order: {holdingValue: 'DESC'},
-    });
+    return this.findByTs(all[0].ts);
   }
 
 
@@ -59,6 +61,16 @@ export class AssetSnapshotService {
     const sns = await this.snapshotsRepository
       .query(`select ccy from asset_snapshot where ts = (select ts from asset_snapshot order by ts desc limit 1)`
         + ` and ccy <> '${AssetSnapshot.CcyAll}' order by holdingValue desc`);
+    return sns.map(a => a.ccy);
+  }
+
+  async findAssetCodes(ts: number): Promise<string[]> {
+    if (isNaN(ts)) {
+      return [];
+    }
+    const sns = await this.snapshotsRepository
+      .query(`select ccy from asset_snapshot where ts = (select ts from asset_snapshot where ts < ? order by ts desc limit 1)`
+        + ` and ccy <> '${AssetSnapshot.CcyAll}' order by holdingValue desc`, [ts]);
     return sns.map(a => a.ccy);
   }
 

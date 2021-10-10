@@ -18,8 +18,13 @@ export class AssetSnapshotController {
 
 
   @Get('codes')
-  async assetCodes(): Promise<ListResult<string>> {
-    let ccys = await this.snapshotService.findLatestAssetCodes();
+  async assetCodes(@Query('ts') ts: number): Promise<ListResult<string>> {
+    let ccys;
+    if (ts) {
+      ccys = await this.snapshotService.findAssetCodes(ts);
+    } else {
+      ccys = await this.snapshotService.findLatestAssetCodes();
+    }
     if (ccys.length === 0) {
       ccys = await this.assetService.findCodes();
     }

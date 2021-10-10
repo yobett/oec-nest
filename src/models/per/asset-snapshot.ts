@@ -25,6 +25,9 @@ export class AssetSnapshot extends Model {
 export interface AssetSnapshotQueryForm {
   ccy: string;
   limit: number;
+  ts?: number;
   olderThan?: number;
+  newerThan?: number;
+  hour?: number;
   hourMod?: number;
 }

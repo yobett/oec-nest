@@ -44,14 +44,14 @@ const EX_DATA_SYNC = {
 const Minute = 60 * 1000;
 
 const StrategyWatchInterval = {
-  loose: 80 * Minute,
-  medium: 20 * Minute,
-  intense: 5 * Minute,
+  loose: 54 * Minute,
+  medium: 14 * Minute,
+  intense: 4 * Minute,
 };
 
 const StrategyExecutorConfig = {
   TradingPriceDeltaPercent: 1,
-  MinAssetUsdtAvailable: 10,
+  MinAssetUsdtAvailable: 5,
   MinAssetAvailable: 1e-2
 }
 

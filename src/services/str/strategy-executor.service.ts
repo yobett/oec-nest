@@ -328,7 +328,7 @@ export class StrategyExecutorService {
       }
 
 
-      await this.doTrade(strategy, options);
+      await this.doTrade(strategy, currentPrice, options);
 
       await this.doAfterTrade(strategy, currentPrice, options);
     }
@@ -336,7 +336,9 @@ export class StrategyExecutorService {
     return;
   }
 
-  private async doTrade(strategy: Strategy, options: StrategyExecutionOptions) {
+  private async doTrade(strategy: Strategy,
+                        currentPrice: number,
+                        options: StrategyExecutionOptions) {
     const ex = strategy.ex;
     const isSell = strategy.side === 'sell';
 
@@ -359,8 +361,15 @@ export class StrategyExecutorService {
         if (available < executorConfig.MinAssetUsdtAvailable) {
           throw new Error('可用余额不足');
         }
-      } else if (available < executorConfig.MinAssetAvailable) {
-        throw new Error('可用余额不足');
+      } else {
+        if (isSell && strategy.quoteCcy === 'USDT') {
+          const volumeUsdt = available * currentPrice;
+          if (volumeUsdt < executorConfig.MinAssetUsdtAvailable) {
+            throw new Error('可用余额不足');
+          }
+        } else if (available < executorConfig.MinAssetAvailable) {
+          throw new Error('可用余额不足');
+        }
       }
       volume = available * strategy.tradeVolPercent / 100.0;
     }

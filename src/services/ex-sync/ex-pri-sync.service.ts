@@ -162,6 +162,14 @@ export class ExPriSyncService {
 
     list.sort((a, b) => b.createTs - a.createTs);
 
+    for (const so of list) {
+      if (!so.baseCcy) {
+        const pair = await this.pairsService.findBySymbol(so.ex, so.pairSymbol);
+        so.baseCcy = pair.baseCcy;
+        so.quoteCcy = pair.quoteCcy;
+      }
+    }
+
     return list;
   }
 

@@ -4,11 +4,13 @@ import { PriSyncTasks } from './pri-sync-tasks';
 import { ServiceModule } from '../services/service.module';
 import { PubSyncTasks } from './pub-sync-tasks';
 import { StrategyTasks } from './strategy-tasks';
+import { PriceMonitorTasks } from './price-monitor-tasks';
 
 const tasks = [
   PriSyncTasks,
   PubSyncTasks,
-  StrategyTasks
+  StrategyTasks,
+  PriceMonitorTasks
 ];
 
 @Module({

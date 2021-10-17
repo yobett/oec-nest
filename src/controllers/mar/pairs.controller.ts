@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, } from '@nestjs/common';
-import { ArbAnalysing, CurrentPrices } from '../../services/mar/current-price.service';
+import { CurrentPrices } from '../../services/mar/current-price.service';
+import { ArbAnalysing } from '../../services/mar/arbitrage.service';
 import { ExPairsService } from '../../services/mar/pairs.service';
 import { CreateExPairDto, ExchangePair, ExchangePairsResult, ExPair, UpdateExPairDto } from '../../models/mar/ex-pair';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -15,6 +16,7 @@ import { OePubApiService } from '../../services/ex-api/oe/oe-pub-api.service';
 import { HbPubApiService } from '../../services/ex-api/hb/hb-pub-api.service';
 import { Exch } from '../../models/sys/exch';
 import { HbPubSyncService } from '../../services/ex-sync/hb/hb-pub-sync.service';
+import { ArbitrageService } from '../../services/mar/arbitrage.service';
 
 declare type PnLT = ExPair & { lastTrans: LastTransaction };
 
@@ -24,6 +26,7 @@ declare type PnLT = ExPair & { lastTrans: LastTransaction };
 export class PairsController {
   constructor(private pairsService: ExPairsService,
               private currentPriceService: CurrentPriceService,
+              private arbitrageService: ArbitrageService,
               private ltService: LastTransactionService,
               private baPubApiService: BaPubApiService,
               private oePubApiService: OePubApiService,
@@ -123,19 +126,19 @@ export class PairsController {
 
   @Post('arb/check-oe')
   async checkArbOe(): Promise<ValueResult<ArbAnalysing>> {
-    const aa = await this.currentPriceService.checkArbOE();
+    const aa = await this.arbitrageService.checkArbOE();
     return ValueResult.value(aa);
   }
 
   @Post('arb/check-ba')
   async checkArbBa(): Promise<ValueResult<ArbAnalysing>> {
-    const aa = await this.currentPriceService.checkArbBA();
+    const aa = await this.arbitrageService.checkArbBA();
     return ValueResult.value(aa);
   }
 
   // @Post('arb/check1')
   // async arbitrage(): Promise<Result> {
-  //   await this.currentPriceService.checkArbitrage();
+  //   await this.arbitrageService.checkArbitrage();
   //   return Result.success();
   // }
 

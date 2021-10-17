@@ -43,10 +43,13 @@ import { AssetSnapshotService } from './per/asset-snapshot.service';
 import { AssetEvaluatorService } from './per/asset-evaluator.service';
 import { NotificationService } from './sys/notification.service';
 import { ExPlaceOrderService } from './ex-sync/ex-place-order.service';
+import { PriceMonitorService } from './mar/price-monitor.service';
+import { ArbitrageService } from './mar/arbitrage.service';
 
 const services: Provider[] = [
   UsersService, ExchsService, ExapisService, NotificationService,
-  CcysService, ExPairsService, CurrentPriceService, MarketDepthService,
+  CcysService, ExPairsService,
+  CurrentPriceService, ArbitrageService, MarketDepthService, PriceMonitorService,
   AssetService, AssetSnapshotService, AssetEvaluatorService,
   SpotOrderService, LastTransactionService,
   BaPubSyncService, BaPriSyncService,

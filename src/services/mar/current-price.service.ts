@@ -1,22 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Command, Console, createSpinner } from 'nestjs-console';
+import { Console } from 'nestjs-console';
 
 import { ExPair } from '../../models/mar/ex-pair';
 import { Exch } from '../../models/sys/exch';
 import { BaPubApiService } from '../ex-api/ba/ba-pub-api.service';
 import { OePubApiService } from '../ex-api/oe/oe-pub-api.service';
 import { HbPubApiService } from '../ex-api/hb/hb-pub-api.service';
-import { Arbitrage, PairModel, Ring, ValueChain } from './arbitrage';
+import { Ccy } from '../../models/mar/ccy';
+import { API, Exapi } from '../../models/sys/exapi';
+import { Quote } from '../../models/mar/quote';
+import { CcysService } from './ccys.service';
+import { CmcApiService } from '../ex-api/cmc/cmc-api.service';
+import { ExapisService } from '../sys/exapis.service';
 
 export declare type CurrentPrice = { source: string, price: number };
 export declare type CurrentPrices = { [key: string]: CurrentPrice };
 
-export interface ArbAnalysing {
-  rings: Ring[];
-  routes: ValueChain[];
-}
 
 @Injectable()
 @Console({
@@ -30,15 +31,48 @@ export class CurrentPriceService {
               protected baPubApiService: BaPubApiService,
               protected oePubApiService: OePubApiService,
               protected hbPubApiService: HbPubApiService,
+              protected ccysService: CcysService,
+              protected cmcApiService: CmcApiService,
+              protected exapisService: ExapisService
   ) {
   }
 
+  async ccyQuotes(convert?: string): Promise<Quote[]> {
 
-  private pairPriceKey(pair: ExPair): string {
+    const list: Ccy[] = await this.ccysService.findConcerned();
+    if (list.length === 0) {
+      return [];
+    }
+    const symbols = list.map(c => c.code);
+
+    convert = convert || 'USD';
+    const api: API = await this.exapisService.findExapi(Exapi.EX_CMC);
+    const quoteRes = await this.cmcApiService.quotes(api, symbols, convert);
+
+    const quotes: Quote[] = [];
+    const hasOwnProperty = Object.prototype.hasOwnProperty;
+    for (const c in quoteRes) {
+      if (!hasOwnProperty.call(quoteRes, c)) {
+        continue;
+      }
+      const cq = quoteRes[c];
+      const symbol = cq.symbol;
+      const quote: Quote = cq.quote[convert];
+      if (symbol && quote) {
+        quote.symbol = symbol;
+        quotes.push(quote);
+      }
+    }
+
+    return quotes;
+  }
+
+
+  protected pairPriceKey(pair: ExPair): string {
     return `${pair.baseCcy}-${pair.quoteCcy}`;
   }
 
-  private async buildPriceMapBA(): Promise<Map<string, number>> {
+  protected async buildPriceMapBA(): Promise<Map<string, number>> {
     const inquireResult = await this.baPubApiService.tickerPrice();
     const pricesMap = new Map<string, number>();
     for (const {symbol, price} of inquireResult) {
@@ -47,7 +81,7 @@ export class CurrentPriceService {
     return pricesMap;
   }
 
-  private async inquirePricesBA(pairs: ExPair[], prices: CurrentPrices): Promise<ExPair[]> {
+  protected async inquirePricesBA(pairs: ExPair[], prices: CurrentPrices): Promise<ExPair[]> {
 
     const leftPairs: ExPair[] = [];
 
@@ -90,7 +124,7 @@ export class CurrentPriceService {
   }
 
 
-  private async buildPriceMapHB(): Promise<Map<string, number>> {
+  protected async buildPriceMapHB(): Promise<Map<string, number>> {
     const inquireResult = await this.hbPubApiService.tickers();
     const pricesMap = new Map<string, number>();
     for (const {symbol, close} of inquireResult) {
@@ -99,7 +133,7 @@ export class CurrentPriceService {
     return pricesMap;
   }
 
-  private async inquirePricesHB(pairs: ExPair[], prices: CurrentPrices): Promise<ExPair[]> {
+  protected async inquirePricesHB(pairs: ExPair[], prices: CurrentPrices): Promise<ExPair[]> {
 
     const leftPairs: ExPair[] = [];
 
@@ -141,7 +175,7 @@ export class CurrentPriceService {
     return leftPairs;
   }
 
-  private async buildPriceMapOE(): Promise<Map<string, number>> {
+  protected async buildPriceMapOE(): Promise<Map<string, number>> {
     const inquireResult = await this.oePubApiService.tickers();
     const pricesMap = new Map<string, number>();
     for (const {instId, last} of inquireResult) {
@@ -151,7 +185,7 @@ export class CurrentPriceService {
   }
 
 
-  private async inquirePricesOE(pairs: ExPair[], prices: CurrentPrices): Promise<ExPair[]> {
+  protected async inquirePricesOE(pairs: ExPair[], prices: CurrentPrices): Promise<ExPair[]> {
 
     const leftPairs: ExPair[] = [];
 
@@ -225,135 +259,6 @@ export class CurrentPriceService {
     return prices;
   }
 
-
-  async checkArbBA(allPairs?: ExPair[]): Promise<ArbAnalysing> {
-    if (!allPairs) {
-      allPairs = await this.pairsRepository.find();
-    }
-    const pairs = allPairs.filter(p => p.baSymbol);
-
-    const arb = new Arbitrage(pairs as PairModel[]);
-    arb.findRings();
-    // arb.printRings();
-
-    console.log('-----');
-    console.log('BA:');
-
-    const rings = arb.rings;
-    if (rings.length === 0) {
-      return {
-        rings,
-        routes: []
-      };
-    }
-
-    const pricesMap = await this.buildPriceMapBA();
-
-    const baseQuotePricesMap = new Map<string, number>();
-    for (const pair of pairs) {
-      const price = pricesMap.get(pair.baSymbol);
-      baseQuotePricesMap.set(this.pairPriceKey(pair), price);
-    }
-
-    arb.buildValueChains(baseQuotePricesMap);
-    arb.printArbs();
-
-    return {
-      rings,
-      routes: arb.arbRoutes
-    };
-  }
-
-  async checkArbOE(allPairs?: ExPair[]): Promise<ArbAnalysing> {
-    if (!allPairs) {
-      allPairs = await this.pairsRepository.find();
-    }
-    const pairs = allPairs.filter(p => p.oeSymbol);
-
-    const arb = new Arbitrage(pairs as PairModel[]);
-    arb.findRings();
-    // arb.printRings();
-    console.log('-----');
-    console.log('OE:');
-
-    const rings = arb.rings;
-    if (rings.length === 0) {
-      return {
-        rings,
-        routes: []
-      };
-    }
-
-    const baseQuotePricesMap = await this.buildPriceMapOE();
-
-    arb.buildValueChains(baseQuotePricesMap);
-    arb.printArbs();
-
-    return {
-      rings,
-      routes: arb.arbRoutes
-    };
-  }
-
-  async checkArbHB(allPairs?: ExPair[]): Promise<ArbAnalysing> {
-    if (!allPairs) {
-      allPairs = await this.pairsRepository.find();
-    }
-    const pairs = allPairs.filter(p => p.hbSymbol);
-
-    const arb = new Arbitrage(pairs as PairModel[]);
-    arb.findRings();
-    // arb.printRings();
-    console.log('-----');
-    console.log('HB:');
-
-    const rings = arb.rings;
-    if (rings.length === 0) {
-      return {
-        rings,
-        routes: []
-      };
-    }
-
-    const pricesMap = await this.buildPriceMapHB();
-    const baseQuotePricesMap = new Map<string, number>();
-    for (const pair of pairs) {
-      const price = pricesMap.get(pair.hbSymbol);
-      baseQuotePricesMap.set(this.pairPriceKey(pair), price);
-    }
-
-    arb.buildValueChains(baseQuotePricesMap);
-
-    arb.buildValueChains(baseQuotePricesMap);
-    arb.printArbs();
-
-    return {
-      rings,
-      routes: arb.arbRoutes
-    };
-  }
-
-  async checkArbitrage(): Promise<void> {
-    const allPairs = await this.pairsRepository.find();
-
-    // TODO: return value
-
-    await this.checkArbBA(allPairs);
-    await this.checkArbOE(allPairs);
-    await this.checkArbHB(allPairs);
-  }
-
-  @Command({
-    command: 'arbitrage',
-    description: '套利发现'
-  })
-  async checkArbitrage2(): Promise<void> {
-    const spin = createSpinner();
-    spin.start(`套利发现 `);
-    await this.checkArbitrage();
-    spin.succeed('完成');
-  }
-
   async inquirePrice(ex: string, symbol: string): Promise<number | string> {
     if (ex === Exch.CODE_OE) {
       const ticker = await this.oePubApiService.ticker(symbol);
@@ -374,7 +279,7 @@ export class CurrentPriceService {
     }
   }
 
-  private async hbPrice(symbol: string): Promise<number | undefined> {
+  protected async hbPrice(symbol: string): Promise<number | undefined> {
     const ticker = await this.hbPubApiService.merged(symbol);
     if (!ticker) {
       return undefined;

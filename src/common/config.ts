@@ -64,6 +64,10 @@ const ClientOrderIdPrefixes = {
 
 const PlaceOrderSyncDelay = 2 * 1000; // 2s
 
+const PriceChangeNotifyPercentThreshold = 1.0;
+
+const StableCoins = ['USDT', 'USDC', 'DAI', 'BUSD'];
+
 export const Config = {
   JwtSecret,
   SiteSalt,
@@ -80,5 +84,7 @@ export const Config = {
   StrategyWatchInterval,
   StrategyExecutorConfig,
   ClientOrderIdPrefixes,
-  PlaceOrderSyncDelay
+  PlaceOrderSyncDelay,
+  StableCoins,
+  PriceChangeNotifyPercentThreshold
 }

@@ -112,6 +112,51 @@ export class ExPriSyncService {
   }
 
 
+  async getPendingOrdersFor(ex: string): Promise<SpotOrder[]> {
+    const api: API = await this.exapisService.findExapi(ex);
+    if (!api) {
+      throw new Error('API未设置：' + ex);
+    }
+    const list: SpotOrder[] = [];
+
+    if (ex === Exch.CODE_OE) {
+      const oeOdrs = await this.oePriService.pendingOrders(api);
+      for (const odr of oeOdrs) {
+        const order = new SpotOrder();
+        OePriSyncService.setNewOrderProps(order, odr);
+        list.push(order);
+      }
+    } else if (ex === Exch.CODE_BA) {
+      const baOdrs = await this.baPriService.openOrders(api);
+      for (const odr of baOdrs) {
+        const order = new SpotOrder();
+        BaPriSyncService.setNewOrderProps(order, odr);
+        list.push(order);
+      }
+    } else if (ex === Exch.CODE_HB) {
+      // concerned
+      const hbPairs = await this.pairsService.findByExConcerned(Exch.CODE_HB);
+      const hbSymbols = hbPairs.map(p => p.hbSymbol);
+      const hbOdrs = await this.hbPriService.openOrders(api, hbSymbols);
+      for (const odr of hbOdrs) {
+        const order = new SpotOrder();
+        HbPriSyncService.setNewOrderProps(order, odr);
+        list.push(order);
+      }
+    } else {
+      throw new Error('未知交易所：' + ex);
+    }
+
+    for (const so of list) {
+      if (!so.baseCcy) {
+        const pair = await this.pairsService.findBySymbol(so.ex, so.pairSymbol);
+        so.baseCcy = pair.baseCcy;
+        so.quoteCcy = pair.quoteCcy;
+      }
+    }
+    return list;
+  }
+
   async getPendingOrders(): Promise<SpotOrder[]> {
 
     const apis: Map<string, API> = await this.exapisService.findExapis();

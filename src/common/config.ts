@@ -64,7 +64,10 @@ const ClientOrderIdPrefixes = {
 
 const PlaceOrderSyncDelay = 2 * 1000; // 2s
 
-const PriceChangeNotifyPercentThreshold = 1.0;
+const PriceChangeNotification = {
+  IntervalMinutes: 20,
+  PercentThreshold: 1.0
+};
 
 const StableCoins = ['USDT', 'USDC', 'DAI', 'BUSD'];
 
@@ -86,5 +89,5 @@ export const Config = {
   ClientOrderIdPrefixes,
   PlaceOrderSyncDelay,
   StableCoins,
-  PriceChangeNotifyPercentThreshold
+  PriceChangeNotification
 }

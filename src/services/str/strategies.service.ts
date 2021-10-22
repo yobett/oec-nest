@@ -36,7 +36,7 @@ export class StrategiesService {
       ex, symbol, baseCcy, quoteCcy, applyOrder,
       basePoint, expectingPercent, drawbackPercent,
       tradeVolPercent, tradeVolByValue, tradeVol,
-      intenseWatchPercent, mediumWatchPercent,
+      // intenseWatchPercent, mediumWatchPercent,
     } = strategy;
 
     const nextType = strategy.type === Strategy.TypeLB ? Strategy.TypeHS : Strategy.TypeLB;
@@ -45,7 +45,7 @@ export class StrategiesService {
       ex, symbol, baseCcy, quoteCcy, applyOrder,
       basePoint, expectingPercent, drawbackPercent,
       tradeVolPercent, tradeVolByValue, tradeVol,
-      intenseWatchPercent, mediumWatchPercent,
+      // intenseWatchPercent, mediumWatchPercent,
     });
 
     next.basePoint = currentPrice;
@@ -174,7 +174,7 @@ export class StrategiesService {
     if ((st.tradeVolByValue && !st.tradeVol) || (!st.tradeVolByValue && !st.tradeVolPercent)) {
       throw new Error('未设置交易量');
     }
-    if (!st.basePoint || !st.expectingPercent || !st.intenseWatchPercent || !st.mediumWatchPercent) {
+    if (!st.basePoint || !st.expectingPercent /*|| !st.intenseWatchPercent || !st.mediumWatchPercent*/) {
       throw new Error('部分属性未设置');
     }
 

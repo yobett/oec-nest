@@ -12,6 +12,7 @@ import { ExPriSyncService } from '../ex-sync/ex-pri-sync.service';
 import { ExchangePair } from '../../models/mar/ex-pair';
 import { SpotOrder } from '../../models/per/spot-order';
 import { NotificationService } from '../sys/notification.service';
+import { PriceMonitorService, PricesSnapshot } from '../mar/price-monitor.service';
 
 export interface StrategyExecutionOptions {
   type?: string;
@@ -34,7 +35,8 @@ export class StrategyExecutorService {
               private assetService: AssetService,
               private exapisService: ExapisService,
               private exPriSyncService: ExPriSyncService,
-              private notificationService: NotificationService
+              private notificationService: NotificationService,
+              private priceMonitorService: PriceMonitorService
   ) {
   }
 
@@ -61,24 +63,47 @@ export class StrategyExecutorService {
       return true;
     }
     const watchLevel = strategy.watchLevel;
-    const watchInterval = Config.StrategyWatchInterval[watchLevel];
+    const StrategyWatch = Config.StrategyWatch;
+    let watchInterval = StrategyWatch.StrategyWatchInterval[watchLevel];
     if (!watchInterval) {
       throw new Error('未配置关注间隔：' + watchLevel);
     }
-    const interval = Date.now() - lastCheckAt.getTime();
+    const ts = Date.now();
+    const lastQuotePrice: PricesSnapshot = this.priceMonitorService.getLastPricesSnapshot();
+    if (lastQuotePrice) {
+      const PriceMonitorInterval = Config.PriceMonitorConfig.IntervalMinutes
+      if ((ts - lastQuotePrice.ts) < PriceMonitorInterval * 1.5) {
+        let avg1HAbs = lastQuotePrice.avg1HAbs;
+        const quotePrice = lastQuotePrice.prices.find(p => p.symbol === strategy.baseCcy);
+        if (quotePrice) {
+          const quote1h = Math.abs(quotePrice.percentChange1h);
+          avg1HAbs = Math.max(avg1HAbs, quote1h);
+        }
+        // console.log('avg1HAbs: ' + avg1HAbs);
+        const fold = StrategyWatch.Price1HPercentWatchIntervalFold(avg1HAbs);
+        // console.log('fold: ' + fold);
+        watchInterval /= fold;
+        // console.log('watchInterval: ' + watchInterval);
+      }
+    }
+    const interval = ts - lastCheckAt.getTime();
     return interval >= watchInterval;
+  }
+
+  private calculateWatchValue(strategy: Strategy): { intenseWatchValue: number, mediumWatchValue: number } {
+    const {basePoint, expectingPercent} = strategy;
+    const WatchIntervalPercentFromExpect = Config.StrategyWatch.WatchIntervalPercentFromExpect;
+    const intenseWatchPercent = expectingPercent - WatchIntervalPercentFromExpect.intense;
+    const mediumWatchPercent = expectingPercent - WatchIntervalPercentFromExpect.medium;
+    const intenseWatchValue = basePoint * (100 - intenseWatchPercent) / 100.0;
+    const mediumWatchValue = basePoint * (100 - mediumWatchPercent) / 100.0;
+    return {intenseWatchValue, mediumWatchValue};
   }
 
   private setWatchLevelForWatchDirectionDown(strategy: Strategy,
                                              currentPrice: number,
                                              options: StrategyExecutionOptions): void {
-    const {basePoint, intenseWatchPercent, mediumWatchPercent} = strategy;
-    if (!intenseWatchPercent || !mediumWatchPercent) {
-      throw new Error('未设置关注级别价格');
-    }
-
-    const intenseWatchValue = basePoint * (100 - intenseWatchPercent) / 100.0;
-    const mediumWatchValue = basePoint * (100 - mediumWatchPercent) / 100.0;
+    const {intenseWatchValue, mediumWatchValue} = this.calculateWatchValue(strategy);
     if (currentPrice <= intenseWatchValue) {
       if (strategy.watchLevel !== 'intense') {
         strategy.watchLevel = 'intense';
@@ -100,13 +125,7 @@ export class StrategyExecutorService {
   private setWatchLevelForWatchDirectionUp(strategy: Strategy,
                                            currentPrice: number,
                                            options: StrategyExecutionOptions): void {
-    const {basePoint, intenseWatchPercent, mediumWatchPercent} = strategy;
-    if (!intenseWatchPercent || !mediumWatchPercent) {
-      throw new Error('未设置关注级别价格');
-    }
-
-    const intenseWatchValue = basePoint * (100 + intenseWatchPercent) / 100.0;
-    const mediumWatchValue = basePoint * (100 + mediumWatchPercent) / 100.0;
+    const {intenseWatchValue, mediumWatchValue} = this.calculateWatchValue(strategy);
     if (currentPrice >= intenseWatchValue) {
       if (strategy.watchLevel !== 'intense') {
         strategy.watchLevel = 'intense';
@@ -138,26 +157,27 @@ export class StrategyExecutorService {
 
     this.setWatchLevelForWatchDirectionDown(strategy, currentPrice, options);
 
-    let toTrade = true;
     if (valley > expectingPoint) {
       this.logger.log('not reach Expecting Value.');
-      toTrade = false;
       strategy.tradingPoint = expectingPoint + expectingPoint * drawbackPercent / 100.0;
-    } else {
-      strategy.tradingPoint = valley + valley * drawbackPercent / 100.0;
-      strategy.beyondExpect = true;
+      return false;
     }
+
+    strategy.tradingPoint = valley + valley * drawbackPercent / 100.0;
+    strategy.beyondExpect = true;
+    let toTrade = true;
 
     if (currentPrice < strategy.tradingPoint) {
       this.logger.log('below Trading Point.');
       toTrade = false;
-    }
-    const delta = currentPrice - strategy.tradingPoint;
-    const executorConfig = Config.StrategyExecutorConfig;
-    const tolerantDelta = basePoint * executorConfig.TradingPriceDeltaPercent / 100.0;
-    if (delta > tolerantDelta) {
-      this.logger.warn('risen too much.');
-      toTrade = false;
+    } else {
+      const delta = currentPrice - strategy.tradingPoint;
+      const executorConfig = Config.StrategyExecutorConfig;
+      const tolerantDelta = basePoint * executorConfig.TradingPriceDeltaPercent / 100.0;
+      if (delta > tolerantDelta) {
+        this.logger.warn('risen too much.');
+        toTrade = false;
+      }
     }
 
     return toTrade;
@@ -177,26 +197,27 @@ export class StrategyExecutorService {
       throw new Error('最大回落未设置');
     }
 
-    let toTrade = true;
     if (peak < expectingPoint) {
       this.logger.log('not reach Expecting Value.');
-      toTrade = false;
       strategy.tradingPoint = expectingPoint - expectingPoint * drawbackPercent / 100.0;
-    } else {
-      strategy.tradingPoint = peak - peak * drawbackPercent / 100.0;
-      strategy.beyondExpect = true;
+      return false;
     }
+
+    strategy.tradingPoint = peak - peak * drawbackPercent / 100.0;
+    strategy.beyondExpect = true;
+    let toTrade = true;
 
     if (currentPrice > strategy.tradingPoint) {
       this.logger.log('above Trading Point.');
       toTrade = false;
-    }
-    const delta = strategy.tradingPoint - currentPrice;
-    const executorConfig = Config.StrategyExecutorConfig;
-    const tolerantDelta = basePoint * executorConfig.TradingPriceDeltaPercent / 100.0;
-    if (delta > tolerantDelta) {
-      this.logger.warn('dropped too much.');
-      toTrade = false;
+    } else {
+      const delta = strategy.tradingPoint - currentPrice;
+      const executorConfig = Config.StrategyExecutorConfig;
+      const tolerantDelta = basePoint * executorConfig.TradingPriceDeltaPercent / 100.0;
+      if (delta > tolerantDelta) {
+        this.logger.warn('dropped too much.');
+        toTrade = false;
+      }
     }
 
     return toTrade;

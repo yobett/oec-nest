@@ -59,11 +59,6 @@ export class Strategy extends Model {
   tradingPoint: number;
 
   @Column({type: 'double', nullable: true})
-  intenseWatchPercent: number;
-  @Column({type: 'double', nullable: true})
-  mediumWatchPercent: number;
-
-  @Column({type: 'double', nullable: true})
   tradeVol: number; // base for sell, quote for buy
   @Column({type: 'double', nullable: true})
   tradeVolPercent: number; // base for sell, quote for buy

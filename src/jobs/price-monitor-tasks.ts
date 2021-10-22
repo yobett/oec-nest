@@ -3,7 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { PriceMonitorService } from '../services/mar/price-monitor.service';
 import { Config } from '../common/config';
 
-const {IntervalMinutes, PercentThreshold} = Config.PriceChangeNotification;
+const {IntervalMinutes} = Config.PriceMonitorConfig;
 
 @Injectable()
 export class PriceMonitorTasks {
@@ -16,7 +16,7 @@ export class PriceMonitorTasks {
   @Cron(`0 3-58/${IntervalMinutes} * * * *`, {name: 'Check Quotes'})
   async checkQuotes() {
     this.logger.log('查询币价 ...');
-    await this.priceMonitorService.checkQuotesAndNotifyIfNecessary(PercentThreshold);
+    await this.priceMonitorService.checkPricesAndNotifyIfNecessary();
     this.logger.log('查询币价完成');
   }
 

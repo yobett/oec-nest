@@ -43,11 +43,20 @@ const EX_DATA_SYNC = {
 
 const Minute = 60 * 1000;
 
-const StrategyWatchInterval = {
-  loose: 54 * Minute,
-  medium: 14 * Minute,
-  intense: 4 * Minute,
-};
+const StrategyWatch = {
+  CheckIntervalMinutes: 5,
+  StrategyWatchInterval: {
+    loose: 64 * Minute,
+    medium: 16 * Minute,
+    intense: 4 * Minute,
+  },
+  WatchIntervalPercentFromExpect: {
+    intense: 1, // expectingPercent - 1
+    medium: 2, // expectingPercent - 2
+  },
+  Price1HPercentWatchIntervalFold: (percent) => (percent > 0.5) ? percent * 2 : 1
+}
+
 
 const StrategyExecutorConfig = {
   TradingPriceDeltaPercent: 1,
@@ -64,9 +73,10 @@ const ClientOrderIdPrefixes = {
 
 const PlaceOrderSyncDelay = 2 * 1000; // 2s
 
-const PriceChangeNotification = {
+const PriceMonitorConfig = {
   IntervalMinutes: 20,
-  PercentThreshold: 1.0
+  PercentThreshold: 1.0,
+  PercentDiffThreshold: 2.0
 };
 
 const StableCoins = ['USDT', 'USDC', 'DAI', 'BUSD'];
@@ -84,10 +94,10 @@ export const Config = {
   HB_API,
   CMC_API,
   EX_DATA_SYNC,
-  StrategyWatchInterval,
+  StrategyWatch,
   StrategyExecutorConfig,
   ClientOrderIdPrefixes,
   PlaceOrderSyncDelay,
   StableCoins,
-  PriceChangeNotification
+  PriceMonitorConfig
 }

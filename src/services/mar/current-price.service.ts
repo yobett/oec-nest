@@ -37,6 +37,21 @@ export class CurrentPriceService {
   ) {
   }
 
+  async ccyQuote(symbol: string, convert?: string): Promise<Quote> {
+
+    convert = convert || 'USD';
+    const api: API = await this.exapisService.findExapi(Exapi.EX_CMC);
+    const quoteRes = await this.cmcApiService.quotes(api, [symbol], convert);
+
+    const cq = quoteRes[symbol];
+    if (!cq) {
+      return null;
+    }
+    const quote: Quote = cq.quote[convert];
+    quote.symbol = symbol;
+    return quote;
+  }
+
   async ccyQuotes(convert?: string): Promise<Quote[]> {
 
     const list: Ccy[] = await this.ccysService.findConcerned();

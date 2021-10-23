@@ -99,7 +99,7 @@ export class PriceMonitorService {
       }
     }
     const title = avg1H > 0 ? 'Price 🠕' : 'Price 🠗';
-    const body = `Quote avg 1H: ${avg1H > 0 ? '+' : ''}${avg1HStr}`;
+    const body = `avg 1H: ${avg1H > 0 ? '+' : ''}${avg1HStr}`;
     this.notificationService.pushNotification(title, body);
     return true;
   }
@@ -111,7 +111,12 @@ export class PriceMonitorService {
       return false;
     }
     prices = prices.slice(0, 3);
-    const title = 'Boom';
+    let title = 'Boom';
+    if (prices.every(p => p.avg1HDiff > 0)) {
+      title += ' 🠕';
+    } else if (prices.every(p => p.avg1HDiff < 0)) {
+      title += ' 🠗';
+    }
     const body = prices.map(p => `${p.symbol}: ${p.avg1HDiff > 0 ? '+' : ''}${p.avg1HDiff.toFixed(2)}%`)
       .join(', ');
     this.notificationService.pushNotification(title, body);

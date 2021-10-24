@@ -1,5 +1,6 @@
 import { HttpService, Injectable } from '@nestjs/common';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { catchError } from 'rxjs/operators';
 import * as crypto from 'crypto';
 import { Config } from '../../../common/config';
 import { API } from '../../../models/sys/exapi';
@@ -60,7 +61,26 @@ export class BaPriApiService {
     console.log('-> ' + paramString);
 
     const requestConfig = this.genReqConfig(api);
-    const res: AxiosResponse = await this.httpService.post(url, paramString, requestConfig).toPromise();
+    const res: AxiosResponse = await this.httpService.post(url, paramString, requestConfig)
+      .pipe(catchError(error => {
+        if (error.response) {
+          const resp = error.response;
+          console.error('Response: ' + resp.status);
+          // console.error(resp.headers);
+          const data = resp.data;
+          if (data) {
+            // data: { code: -1013, msg: 'Filter failure: MIN_NOTIONAL' }
+            console.error('Response Body:');
+            console.error(data);
+            if (data.msg) {
+              const err = new Error(data.msg);
+              err['status'] = resp.status;
+              throw err;
+            }
+          }
+        }
+        throw error;
+      })).toPromise();
     return res.data;
   }
 

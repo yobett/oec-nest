@@ -109,8 +109,13 @@ export function roundNumber(val: string | number,
   if (di === -1) {
     return str;
   }
-  if (type === 'effect' && str.length - 1 <= digits) {
-    return str;
+  if (type === 'effect') {
+    if (floor && di >= digits) {
+      return str.substr(0, di);
+    }
+    if (str.length - 1 <= digits) {
+      return str;
+    }
   }
   if (type === 'fraction' && str.length - 1 <= di + digits) {
     return str;

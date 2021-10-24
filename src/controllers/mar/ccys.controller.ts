@@ -44,6 +44,12 @@ export class CcysController {
     return ValueResult.value(value);
   }
 
+  @Get('code/:code')
+  async getByCode(@Param('code') code: string): Promise<ValueResult<Ccy>> {
+    const value: Ccy = await this.ccysService.findByCode(code);
+    return ValueResult.value(value);
+  }
+
   @Get(':symbol/meta')
   async meta(@Param('symbol') symbol: string): Promise<ValueResult<any>> {
     const api: API = await this.exapisService.findExapi(Exapi.EX_CMC);

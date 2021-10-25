@@ -4,7 +4,7 @@ import { Config } from '../../common/config';
 import { NotificationService } from '../sys/notification.service';
 import { Quote } from '../../models/mar/quote';
 
-const {IntervalMinutes, PercentThreshold, PercentDiffThreshold} = Config.PriceMonitorConfig;
+const {IntervalMinutes, IdleIntervalMinutes, PercentThreshold, PercentDiffThreshold} = Config.PriceMonitorConfig;
 
 export type SymbolPrice = {
   symbol: string,
@@ -31,11 +31,14 @@ export class PriceMonitorService {
 
   lastQuotePrice: PricesSnapshot;
 
+  lastPriceRequestTs: number;
+
   constructor(protected currentPriceService: CurrentPriceService,
               protected notificationService: NotificationService) {
   }
 
   getLastPricesSnapshot(): PricesSnapshot {
+    this.lastPriceRequestTs = Date.now();
     return this.lastQuotePrice;
   }
 
@@ -84,7 +87,7 @@ export class PriceMonitorService {
     };
   }
 
-  notifyAvg1H(snapshot: PricesSnapshot, lastQuotePrice: PricesSnapshot): boolean {
+  notifyAvg1H(snapshot: PricesSnapshot, lastQuotePrice: PricesSnapshot | null): boolean {
     const {ts, avg1H, avg1HAbs} = snapshot;
     const avg1HStr = avg1H.toFixed(2) + '%';
     this.logger.log(`avg 1H: ${avg1HStr}, threshold: ${PercentThreshold}%`);
@@ -104,9 +107,25 @@ export class PriceMonitorService {
     return true;
   }
 
-  notifyBooming(prices: SymbolPrice[]): boolean {
-    prices = prices.filter(p => p.avg1HDiffAbs > PercentDiffThreshold)
-      .sort((p1, p2) => p2.avg1HDiffAbs - p1.avg1HDiffAbs);
+  notifyBooming(snapshot: PricesSnapshot, lastQuotePrice: PricesSnapshot | null): boolean {
+    let lastPrices: SymbolPrice[] = null;
+    if (lastQuotePrice) {
+      if ((snapshot.ts - lastQuotePrice.ts) < IntervalMinutes * 1.5) {
+        lastPrices = lastQuotePrice.prices;
+      }
+    }
+    let prices = snapshot.prices.filter(p => {
+      if (p.avg1HDiffAbs <= PercentDiffThreshold) {
+        return false;
+      }
+      if (lastPrices) {
+        const lastPrice = lastPrices.find(lp => lp.symbol === p.symbol);
+        if (lastPrice && p.avg1HDiffAbs <= lastPrice.avg1HDiffAbs) {
+          return false;
+        }
+      }
+      return true;
+    }).sort((p1, p2) => p2.avg1HDiffAbs - p1.avg1HDiffAbs);
     if (prices.length === 0) {
       return false;
     }
@@ -125,6 +144,18 @@ export class PriceMonitorService {
 
   async checkPricesAndNotifyIfNecessary(): Promise<void> {
 
+    const observersCount = this.notificationService.getObserversCount();
+    if (observersCount === 0) {
+      const lts = this.lastPriceRequestTs;
+      if (lts) {
+        const priceRequestInterval = Date.now() - lts;
+        if (priceRequestInterval && priceRequestInterval > IdleIntervalMinutes * 60 * 1000) {
+          this.logger.log(`not request prices for last ${IdleIntervalMinutes} minutes.`);
+          return;
+        }
+      }
+    }
+
     const snapshot = await this.queryPrices();
     if (!snapshot) {
       return;
@@ -132,7 +163,6 @@ export class PriceMonitorService {
     const lastQuotePrice: PricesSnapshot = this.lastQuotePrice;
     this.lastQuotePrice = snapshot;
 
-    const observersCount = this.notificationService.getObserversCount();
     if (observersCount === 0) {
       this.logger.log('no observer.');
       return;
@@ -140,10 +170,13 @@ export class PriceMonitorService {
 
     const notified = this.notifyAvg1H(snapshot, lastQuotePrice);
     if (notified) {
-      return;
+      setTimeout(() => {
+        this.notifyBooming(snapshot, lastQuotePrice);
+      }, 20 * 1000);
+    } else {
+      this.notifyBooming(snapshot, lastQuotePrice);
     }
 
-    this.notifyBooming(snapshot.prices);
   }
 
 }

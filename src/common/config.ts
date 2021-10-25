@@ -74,7 +74,8 @@ const ClientOrderIdPrefixes = {
 const PlaceOrderSyncDelay = 2 * 1000; // 2s
 
 const PriceMonitorConfig = {
-  IntervalMinutes: 20,
+  IntervalMinutes: 10,
+  IdleIntervalMinutes: 20,
   PercentThreshold: 1.0,
   PercentDiffThreshold: 2.0
 };

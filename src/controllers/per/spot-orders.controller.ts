@@ -113,18 +113,26 @@ export class SpotOrdersController {
     form.clientOrderId = SpotOrder.genClientOrderId(ss, Config.ClientOrderIdPrefixes.web);
 
     const value = await this.exPriApiService.placeOrder(api, ex, form);
-    if (form.type === 'market' && form.baseCcy && form.quoteCcy) {
+    if (form.type === 'market') {
+      if (form.baseCcy && form.quoteCcy) {
+        setTimeout(() => {
+          const exp: ExchangePair = {
+            ex,
+            baseCcy: form.baseCcy,
+            quoteCcy: form.quoteCcy,
+            symbol: form.symbol
+          };
+          this.exPriSyncService.syncAfterPlacedOrder(exp)
+            .then(updated => {
+              this.logger.log('下单后同步，更新：' + updated);
+            });
+        }, Config.PlaceOrderSyncDelay);
+      }
+    } else {
       setTimeout(() => {
-        const exp: ExchangePair = {
-          ex,
-          baseCcy: form.baseCcy,
-          quoteCcy: form.quoteCcy,
-          symbol: form.symbol
-        };
-        this.exPriSyncService.syncAfterPlacedOrder(exp)
-          .then(updated => {
-            this.logger.log('下单后同步，更新：' + updated);
-          });
+        this.exPriSyncService.syncExAssets(ex).then(result => {
+          this.logger.log('下限价单后同步资产');
+        });
       }, Config.PlaceOrderSyncDelay);
     }
     return ValueResult.value(value);
@@ -135,6 +143,9 @@ export class SpotOrdersController {
                     @Body() form: CancelOrderForm): Promise<ValueResult<any>> {
     const api: API = await this.exapisService.findExapi(ex);
     const value = await this.exPriApiService.cancelOrder(api, ex, form);
+
+    await this.exPriSyncService.syncExAssets(ex).catch(console.error);
+
     return ValueResult.value(value);
   }
 

@@ -63,6 +63,7 @@ export class ExPriSyncService {
       if (exCode === Exch.CODE_HB) {
         return this.hbPriSyncService.syncAssets(api);
       }
+      throw new Error('未知交易所：' + exCode);
     });
   }
 
@@ -78,6 +79,7 @@ export class ExPriSyncService {
     if (exCode === Exch.CODE_HB) {
       return this.hbPriSyncService.syncAssets(api);
     }
+    throw new Error('未知交易所：' + exCode);
   }
 
   async syncOrdersDefault(): Promise<SyncResults> {
@@ -92,6 +94,7 @@ export class ExPriSyncService {
       if (exCode === Exch.CODE_HB) {
         return this.hbPriSyncService.syncOrders2d(api);
       }
+      throw new Error('未知交易所：' + exCode);
     });
   }
 
@@ -164,13 +167,19 @@ export class ExPriSyncService {
     const promises: any[] = [];
     const oeApi = apis.get(Exch.CODE_OE);
     if (oeApi) {
-      promises.push(this.oePriService.pendingOrders(oeApi));
+      promises.push(this.oePriService.pendingOrders(oeApi).catch(err => {
+        console.error(err);
+        return [];
+      }));
     } else {
       promises.push(Promise.resolve([]));
     }
     const baApi = apis.get(Exch.CODE_BA);
     if (baApi) {
-      promises.push(this.baPriService.openOrders(baApi));
+      promises.push(this.baPriService.openOrders(baApi).catch(err => {
+        console.error(err);
+        return [];
+      }));
     } else {
       promises.push(Promise.resolve([]));
     }
@@ -178,7 +187,10 @@ export class ExPriSyncService {
     if (hbApi) {
       const hbPairs = await this.pairsService.findByExConcerned(Exch.CODE_HB);
       const hbSymbols = hbPairs.map(p => p.hbSymbol);
-      promises.push(this.hbPriService.openOrders(hbApi, hbSymbols));
+      promises.push(this.hbPriService.openOrders(hbApi, hbSymbols).catch(err => {
+        console.error(err);
+        return [];
+      }));
     } else {
       promises.push(Promise.resolve([]));
     }

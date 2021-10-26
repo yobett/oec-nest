@@ -24,21 +24,8 @@ export class DataSyncPriController {
   }
 
   @Post('assets/ex/:ex')
-  async oeAssets(@Param('ex') ex: string): Promise<ValueResult<SyncResult>> {
-    const api: API = await this.exapisService.findExapi(ex);
-    if (!api) {
-      throw new Error('API未配置');
-    }
-    let stat: SyncResult;
-    if (ex === Exch.CODE_OE) {
-      stat = await this.oePriSyncService.syncAssets(api);
-    } else if (ex === Exch.CODE_BA) {
-      stat = await this.baPriSyncService.syncAssets(api);
-    } else if (ex === Exch.CODE_HB) {
-      stat = await this.hbPriSyncService.syncAssets(api);
-    } else {
-      throw new Error('未知交易所' + ex);
-    }
+  async exAssets(@Param('ex') ex: string): Promise<ValueResult<SyncResult>> {
+    const stat: SyncResult = await this.exPriSyncService.syncExAssets(ex);
     return ValueResult.value(stat);
   }
 

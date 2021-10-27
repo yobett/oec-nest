@@ -1,6 +1,6 @@
 {
   "name": "oec-nest",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "OEC现货交易助手（后端）",
   "keywords": [
     "crypto currency",
@@ -21,6 +21,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build",
+    "build-zip": "nest build & zip -r dist.zip dist",
     "start": "set DEBUG=oec:* & set OEC_PORT=3001 & nest start",
     "start:dev": "set DEBUG=oec:* & set OEC_PORT=3001 & nest start --watch",
     "start:debug": "nest start --debug --watch",

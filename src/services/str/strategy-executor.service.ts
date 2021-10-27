@@ -378,12 +378,12 @@ export class StrategyExecutorService {
       volume = strategy.tradeVol;
     } else {
       const executorConfig = Config.StrategyExecutorConfig;
-      if (assetCcy === 'USDT') {
+      if (Config.StableCoins.includes(assetCcy)) {
         if (available < executorConfig.MinAssetUsdtAvailable) {
           throw new Error('可用余额不足');
         }
       } else {
-        if (isSell && strategy.quoteCcy === 'USDT') {
+        if (isSell && Config.StableCoins.includes(strategy.quoteCcy)) {
           const volumeUsdt = available * currentPrice;
           if (volumeUsdt < executorConfig.MinAssetUsdtAvailable) {
             throw new Error('可用余额不足');

@@ -3,6 +3,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ExPriSyncService } from '../services/ex-sync/ex-pri-sync.service';
 import { Config } from '../common/config';
 import { AssetEvaluatorService } from '../services/per/asset-evaluator.service';
+import { SyncResult, SyncResults } from '../models/sync-result';
+import { Exch } from '../models/sys/exch';
 
 @Injectable()
 export class PriSyncTasks {
@@ -34,16 +36,33 @@ export class PriSyncTasks {
     })
   async syncAssetsAndBuildSnapshots() {
     this.logger.debug('同步资产并构建快照 ...');
+    let syncResults: SyncResults;
     try {
-      await this.exPriSyncService.syncAssets();
+      syncResults = await this.exPriSyncService.syncAssets();
     } catch (e) {
       this.logger.error(e);
     }
 
     await this.assetEvaluatorService.buildSnapshots();
+
+    if (!syncResults) {
+      return
+    }
+    for (const ex of [Exch.CODE_BA, Exch.CODE_OE, Exch.CODE_HB]) {
+      const assetSyncResult: SyncResult = syncResults[ex];
+      if (!assetSyncResult) {
+        continue;
+      }
+      if (assetSyncResult.create > 0 || assetSyncResult.update > 0) {
+        this.logger.debug(`同步订单（${ex}） ...`);
+        const orderSyncResult: SyncResult = await this.exPriSyncService.syncOrdersDefaultFor(Exch.CODE_BA);
+        const resultStr = JSON.stringify(orderSyncResult, null, 2);
+        this.logger.debug('同步订单结果：\n' + resultStr);
+      }
+    }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_6AM, {
+  /*@Cron(CronExpression.EVERY_DAY_AT_6AM, {
     name: 'syncOrders',
     timeZone: Config.Timezone
   })
@@ -52,5 +71,5 @@ export class PriSyncTasks {
     const syncResults = await this.exPriSyncService.syncOrdersDefault();
     const resultStr = JSON.stringify(syncResults, null, 2);
     this.logger.debug('同步订单结果：\n' + resultStr);
-  }
+  }*/
 }

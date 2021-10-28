@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, } from '@nestjs/common';
-import { CurrentPrices } from '../../services/mar/current-price.service';
+import { CurrentPrices, PriceRequest, PriceResponse } from '../../services/mar/current-price.service';
 import { ArbAnalysing } from '../../services/mar/arbitrage.service';
 import { ExPairsService } from '../../services/mar/pairs.service';
 import { CreateExPairDto, ExchangePair, ExchangePairsResult, ExPair, UpdateExPairDto } from '../../models/mar/ex-pair';
@@ -102,6 +102,15 @@ export class PairsController {
   async inquireConcernedPrices(@Query('preferDS') preferDS: string = null): Promise<ValueResult<CurrentPrices>> {
     const prices = await this.currentPriceService.inquireConcernedPrices(preferDS);
     return ValueResult.value(prices);
+  }
+
+  @Post('inquirePrices')
+  async inquirePricesEx(@Body() priceRequests: PriceRequest[]): Promise<ListResult<PriceResponse>> {
+    if (!priceRequests || priceRequests.length === 0) {
+      return ListResult.list([]);
+    }
+    const res: PriceResponse[] = await this.currentPriceService.inquirePricesEx(priceRequests);
+    return ListResult.list(res);
   }
 
   @Get('exchangeInfo/:ex/:symbol')

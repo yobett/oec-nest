@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 
 import { CmcSyncService } from '../services/ex-sync/cmc/cmc-sync.service';
 import { ExPubSyncService } from '../services/ex-sync/ex-pub-sync.service';
@@ -15,7 +15,7 @@ export class PubSyncTasks {
   }
 
 
-  @Cron(CronExpression.EVERY_DAY_AT_1AM, {
+  @Cron('2 01 * * *', {
     name: 'syncCurrencies 100',
     timeZone: Config.Timezone
   })
@@ -23,7 +23,7 @@ export class PubSyncTasks {
     await this.syncCurrencies(100);
   }
 
-  @Cron('0 0 02 * * 1', {
+  @Cron('2 02 * * 1', {
     name: 'syncCurrencies 1000',
     timeZone: Config.Timezone
   })
@@ -31,7 +31,7 @@ export class PubSyncTasks {
     await this.syncCurrencies(1000);
   }
 
-  // @Cron('0 30 02 1 * *', {name: 'syncCurrencies5000'})
+  // @Cron('30 02 1 * *', {name: 'syncCurrencies5000'})
   // async syncCurrencies5000() {
   //   await this.syncCurrencies(5000);
   // }
@@ -46,7 +46,7 @@ export class PubSyncTasks {
   }
 
 
-  @Cron('0 0 03 * * 1', {
+  @Cron('2 03 * * 1', {
     name: 'sync Pairs And New Currencies',
     timeZone: Config.Timezone
   })
@@ -56,11 +56,11 @@ export class PubSyncTasks {
     const syncResults = await this.exPubSyncService.syncPairsAndNewCurrencies();
 
     const resultStr = JSON.stringify(syncResults, null, 2);
-    this.logger.debug('S同步交易对，并同步出现的新币种，结果：\n' + resultStr);
+    this.logger.debug('同步交易对，并同步出现的新币种，结果：\n' + resultStr);
   }
 
 
-  @Cron('0 0 04 1 * *', {
+  /*@Cron('2 04 1 * *', {
     name: 'syncNewCurrencies',
     timeZone: Config.Timezone
   })
@@ -71,5 +71,5 @@ export class PubSyncTasks {
 
     const resultStr = JSON.stringify(stat, null, 2);
     this.logger.debug('同步交易对中的新币种，结果：\n' + resultStr);
-  }
+  }*/
 }

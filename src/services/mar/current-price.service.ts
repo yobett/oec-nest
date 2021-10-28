@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Console } from 'nestjs-console';
+import { groupBy } from 'lodash';
 
 import { ExPair } from '../../models/mar/ex-pair';
 import { Exch } from '../../models/sys/exch';
@@ -14,9 +13,21 @@ import { Quote } from '../../models/mar/quote';
 import { CcysService } from './ccys.service';
 import { CmcApiService } from '../ex-api/cmc/cmc-api.service';
 import { ExapisService } from '../sys/exapis.service';
+import { ExPairsService } from './pairs.service';
 
 export declare type CurrentPrice = { source: string, price: number };
 export declare type CurrentPrices = { [key: string]: CurrentPrice };
+
+export interface PriceRequest {
+  baseCcy: string;
+  quoteCcy: string;
+  ex: string;
+}
+
+export interface PriceResponse extends PriceRequest {
+  symbol: string;
+  price: number;
+}
 
 
 @Injectable()
@@ -26,8 +37,7 @@ export declare type CurrentPrices = { [key: string]: CurrentPrice };
 })
 export class CurrentPriceService {
 
-  constructor(@InjectRepository(ExPair)
-              protected pairsRepository: Repository<ExPair>,
+  constructor(protected pairsService: ExPairsService,
               protected baPubApiService: BaPubApiService,
               protected oePubApiService: OePubApiService,
               protected hbPubApiService: HbPubApiService,
@@ -83,11 +93,11 @@ export class CurrentPriceService {
   }
 
 
-  protected pairPriceKey(pair: ExPair): string {
+  pairPriceKey(pair: ExPair): string {
     return `${pair.baseCcy}-${pair.quoteCcy}`;
   }
 
-  protected async buildPriceMapBA(): Promise<Map<string, number>> {
+  async buildPriceMapBA(): Promise<Map<string, number>> {
     const inquireResult = await this.baPubApiService.tickerPrice();
     const pricesMap = new Map<string, number>();
     for (const {symbol, price} of inquireResult) {
@@ -139,7 +149,7 @@ export class CurrentPriceService {
   }
 
 
-  protected async buildPriceMapHB(): Promise<Map<string, number>> {
+  async buildPriceMapHB(): Promise<Map<string, number>> {
     const inquireResult = await this.hbPubApiService.tickers();
     const pricesMap = new Map<string, number>();
     for (const {symbol, close} of inquireResult) {
@@ -190,7 +200,7 @@ export class CurrentPriceService {
     return leftPairs;
   }
 
-  protected async buildPriceMapOE(): Promise<Map<string, number>> {
+  async buildPriceMapOE(): Promise<Map<string, number>> {
     const inquireResult = await this.oePubApiService.tickers();
     const pricesMap = new Map<string, number>();
     for (const {instId, last} of inquireResult) {
@@ -210,7 +220,7 @@ export class CurrentPriceService {
           leftPairs.push(pair);
           continue;
         }
-        const ticker = this.oePubApiService.ticker(pair.oeSymbol);
+        const ticker = await this.oePubApiService.ticker(pair.oeSymbol);
         if (!ticker || !ticker[0]) {
           leftPairs.push(pair);
           continue;
@@ -243,7 +253,7 @@ export class CurrentPriceService {
 
   async inquireConcernedPrices(preferDS: string = null): Promise<CurrentPrices> {
 
-    const pairs = await this.pairsRepository.find({concerned: true});
+    const pairs = await this.pairsService.findConcerned();
 
     const prices: CurrentPrices = {};
     let leftPairs: ExPair[] = pairs;
@@ -292,6 +302,57 @@ export class CurrentPriceService {
     if (ex === Exch.CODE_HB) {
       return await this.hbPrice(symbol);
     }
+  }
+
+  async inquirePricesEx(priceRequests: PriceRequest[]): Promise<PriceResponse[]> {
+
+    const pairs = await this.pairsService.findPairs(priceRequests);
+    const pairsMap: Map<string, ExPair> = new Map<string, ExPair>(pairs.map(p => [p.baseCcy, p]));
+
+    const exGroups = groupBy(priceRequests, 'ex');
+
+    const actions = {
+      [Exch.CODE_BA]: (leftPairs, prices) => this.inquirePricesBA(leftPairs, prices),
+      [Exch.CODE_HB]: (leftPairs, prices) => this.inquirePricesHB(leftPairs, prices),
+      [Exch.CODE_OE]: (leftPairs, prices) => this.inquirePricesOE(leftPairs, prices),
+    };
+
+    const prices: CurrentPrices = {};
+    const promises: Promise<ExPair[]>[] = [];
+    const requestWithPairs: (PriceRequest & { pair: ExPair })[] = [];
+
+    for (const ex of [Exch.CODE_BA, Exch.CODE_HB, Exch.CODE_OE]) {
+      const exGroup = exGroups[ex];
+      if (!exGroup) {
+        continue;
+      }
+      const pairs: ExPair[] = [];
+      for (const priceRequest of exGroup) {
+        const pair: ExPair = pairsMap.get(priceRequest.baseCcy);
+        if (pair) {
+          pairs.push(pair);
+        }
+        requestWithPairs.push({...priceRequest, pair});
+      }
+      promises.push(actions[ex](pairs, prices));
+    }
+
+    await Promise.all(promises);
+
+    return requestWithPairs.map(rp => {
+      const {baseCcy, ex, pair} = rp;
+      let symbol = undefined;
+      let price = undefined;
+      if (pair) {
+        symbol = pair[ex + 'Symbol'];
+        const key = this.pairPriceKey(pair);
+        const cp: CurrentPrice = prices[key];
+        if (cp) {
+          price = cp.price;
+        }
+      }
+      return {baseCcy, ex, symbol, price} as PriceResponse;
+    });
   }
 
   protected async hbPrice(symbol: string): Promise<number | undefined> {

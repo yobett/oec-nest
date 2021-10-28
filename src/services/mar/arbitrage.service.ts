@@ -1,17 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Command, Console, createSpinner } from 'nestjs-console';
 
 import { ExPair } from '../../models/mar/ex-pair';
-import { BaPubApiService } from '../ex-api/ba/ba-pub-api.service';
-import { OePubApiService } from '../ex-api/oe/oe-pub-api.service';
-import { HbPubApiService } from '../ex-api/hb/hb-pub-api.service';
 import { Arbitrage, PairModel, Ring, ValueChain } from './arbitrage';
 import { CurrentPriceService } from './current-price.service';
-import { CcysService } from './ccys.service';
-import { CmcApiService } from '../ex-api/cmc/cmc-api.service';
-import { ExapisService } from '../sys/exapis.service';
+import { ExPairsService } from './pairs.service';
 
 export interface ArbAnalysing {
   rings: Ring[];
@@ -23,25 +16,17 @@ export interface ArbAnalysing {
   command: 'arbitrage',
   description: 'ArbitrageService'
 })
-export class ArbitrageService extends CurrentPriceService {
+export class ArbitrageService {
 
-  constructor(@InjectRepository(ExPair)
-              protected pairsRepository: Repository<ExPair>,
-              protected baPubApiService: BaPubApiService,
-              protected oePubApiService: OePubApiService,
-              protected hbPubApiService: HbPubApiService,
-              protected ccysService: CcysService,
-              protected cmcApiService: CmcApiService,
-              protected exapisService: ExapisService
+  constructor(protected pairsService: ExPairsService,
+              protected priceService:CurrentPriceService
   ) {
-    super(pairsRepository, baPubApiService, oePubApiService, hbPubApiService,
-      ccysService, cmcApiService, exapisService);
   }
 
 
   async checkArbBA(allPairs?: ExPair[]): Promise<ArbAnalysing> {
     if (!allPairs) {
-      allPairs = await this.pairsRepository.find();
+      allPairs = await this.pairsService.findAll();
     }
     const pairs = allPairs.filter(p => p.baSymbol);
 
@@ -60,12 +45,12 @@ export class ArbitrageService extends CurrentPriceService {
       };
     }
 
-    const pricesMap = await this.buildPriceMapBA();
+    const pricesMap = await this.priceService.buildPriceMapBA();
 
     const baseQuotePricesMap = new Map<string, number>();
     for (const pair of pairs) {
       const price = pricesMap.get(pair.baSymbol);
-      baseQuotePricesMap.set(this.pairPriceKey(pair), price);
+      baseQuotePricesMap.set(this.priceService.pairPriceKey(pair), price);
     }
 
     arb.buildValueChains(baseQuotePricesMap);
@@ -79,7 +64,7 @@ export class ArbitrageService extends CurrentPriceService {
 
   async checkArbOE(allPairs?: ExPair[]): Promise<ArbAnalysing> {
     if (!allPairs) {
-      allPairs = await this.pairsRepository.find();
+      allPairs = await this.pairsService.findAll();
     }
     const pairs = allPairs.filter(p => p.oeSymbol);
 
@@ -97,7 +82,7 @@ export class ArbitrageService extends CurrentPriceService {
       };
     }
 
-    const baseQuotePricesMap = await this.buildPriceMapOE();
+    const baseQuotePricesMap = await this.priceService.buildPriceMapOE();
 
     arb.buildValueChains(baseQuotePricesMap);
     arb.printArbs();
@@ -110,7 +95,7 @@ export class ArbitrageService extends CurrentPriceService {
 
   async checkArbHB(allPairs?: ExPair[]): Promise<ArbAnalysing> {
     if (!allPairs) {
-      allPairs = await this.pairsRepository.find();
+      allPairs = await this.pairsService.findAll();
     }
     const pairs = allPairs.filter(p => p.hbSymbol);
 
@@ -128,11 +113,11 @@ export class ArbitrageService extends CurrentPriceService {
       };
     }
 
-    const pricesMap = await this.buildPriceMapHB();
+    const pricesMap = await this.priceService.buildPriceMapHB();
     const baseQuotePricesMap = new Map<string, number>();
     for (const pair of pairs) {
       const price = pricesMap.get(pair.hbSymbol);
-      baseQuotePricesMap.set(this.pairPriceKey(pair), price);
+      baseQuotePricesMap.set(this.priceService.pairPriceKey(pair), price);
     }
 
     arb.buildValueChains(baseQuotePricesMap);
@@ -147,7 +132,7 @@ export class ArbitrageService extends CurrentPriceService {
   }
 
   async checkArbitrage(): Promise<void> {
-    const allPairs = await this.pairsRepository.find();
+    const allPairs = await this.pairsService.findAll();
 
     // TODO: return value
 

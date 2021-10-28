@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Not, Repository } from 'typeorm';
 import { FindConditions } from 'typeorm/find-options/FindConditions';
+import { groupBy, toPairs } from 'lodash';
 import { CreateExPairDto, ExchangePair, ExPair, ExPairFilter, UpdateExPairDto } from '../../models/mar/ex-pair';
 import { Pager, QueryParams, Sorter } from '../../models/query-params';
 import { CountList } from '../../models/result';
@@ -23,12 +24,15 @@ export class ExPairsService {
   }
 
   findPairs(baseQuotes: { baseCcy: string, quoteCcy: string }[]): Promise<ExPair[]> {
-    const orConditions = baseQuotes.map(bq => {
-      return {baseCcy: bq.baseCcy, quoteCcy: bq.quoteCcy};
-    })
-    return this.pairsRepository.find(
-      {where: orConditions}
-    );
+    const bqGroups = groupBy(baseQuotes, 'quoteCcy');
+    const conditions: FindConditions<ExPair>[] = toPairs(bqGroups)
+      .map(([quoteCcy, bqs]) => {
+        return {
+          baseCcy: (bqs.length === 1) ? bqs[0].baseCcy : In(bqs.map(bq => bq.baseCcy)),
+          quoteCcy
+        }
+      });
+    return this.pairsRepository.find({where: conditions});
   }
 
   findBySymbol(ex: string, symbol: string): Promise<ExPair> {

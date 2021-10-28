@@ -83,19 +83,23 @@ export class ExPriSyncService {
   }
 
   async syncOrdersDefault(): Promise<SyncResults> {
+    return this.syncEach(this.syncOrdersDefaultFor.bind(this));
+  }
 
-    return this.syncEach((exCode: string, api: API): Promise<SyncResult> => {
-      if (exCode === Exch.CODE_OE) {
-        return this.oePriSyncService.syncOrders(api);
-      }
-      if (exCode === Exch.CODE_BA) {
-        return this.baPriSyncService.syncOrdersForConcernedPairs(api);
-      }
-      if (exCode === Exch.CODE_HB) {
-        return this.hbPriSyncService.syncOrders2d(api);
-      }
-      throw new Error('未知交易所：' + exCode);
-    });
+  async syncOrdersDefaultFor(exCode: string, api?: API): Promise<SyncResult> {
+    if (!api) {
+      api = await this.exapisService.findExapi(exCode);
+    }
+    if (exCode === Exch.CODE_OE) {
+      return this.oePriSyncService.syncOrders(api);
+    }
+    if (exCode === Exch.CODE_BA) {
+      return this.baPriSyncService.syncOrdersForConcernedPairs(api);
+    }
+    if (exCode === Exch.CODE_HB) {
+      return this.hbPriSyncService.syncOrders2d(api);
+    }
+    throw new Error('未知交易所：' + exCode);
   }
 
 

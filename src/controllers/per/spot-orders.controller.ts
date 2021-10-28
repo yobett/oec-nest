@@ -20,7 +20,7 @@ import { ExchangePair } from '../../models/mar/ex-pair';
 export class SpotOrdersController {
   private readonly logger = new Logger(SpotOrdersController.name);
 
-  constructor(private spotOrdersService: SpotOrderService,
+  constructor(private ordersService: SpotOrderService,
               private exPriApiService: ExPlaceOrderService,
               private exPriSyncService: ExPriSyncService,
               private exapisService: ExapisService
@@ -30,7 +30,7 @@ export class SpotOrdersController {
   @Get('page')
   async page(@QueryFilter() query: QueryParams): Promise<CountListResult<SpotOrder>> {
     const {pager, filter, sorter} = query;
-    const cl: CountList<SpotOrder> = await this.spotOrdersService.page(pager, filter, sorter);
+    const cl: CountList<SpotOrder> = await this.ordersService.page(pager, filter, sorter);
     return CountListResult.cl(cl);
   }
 
@@ -41,51 +41,51 @@ export class SpotOrdersController {
     if (queryForm.olderThan) {
       queryForm.olderThan = +queryForm.olderThan;
     }
-    const list = await this.spotOrdersService.timeLineQuery(queryForm);
+    const list = await this.ordersService.timeLineQuery(queryForm);
     return ListResult.list(list);
   }
 
   @Get('pair/:ex/:symbol')
   async findByExPair(@Param('ex') ex: string,
                      @Param('symbol') symbol: string): Promise<ListResult<SpotOrder>> {
-    const list: SpotOrder[] = await this.spotOrdersService.findByExPair(ex, symbol);
+    const list: SpotOrder[] = await this.ordersService.findByExPair(ex, symbol);
     return ListResult.list(list);
   }
 
   @Get('ccy/:ccy')
   async findByCcy(@Param('ccy') ccy: string): Promise<ListResult<SpotOrder>> {
-    const list: SpotOrder[] = await this.spotOrdersService.findByCcy(ccy);
+    const list: SpotOrder[] = await this.ordersService.findByCcy(ccy);
     return ListResult.list(list);
   }
 
   @Get('exCcy/:ex/:ccy')
   async findByExCcy(@Param('ex') ex: string,
                     @Param('ccy') ccy: string): Promise<ListResult<SpotOrder>> {
-    const list: SpotOrder[] = await this.spotOrdersService.findByExCcy(ex, ccy);
+    const list: SpotOrder[] = await this.ordersService.findByExCcy(ex, ccy);
     return ListResult.list(list);
   }
 
   @Get(':id')
   async getById(@Param('id') id: string): Promise<ValueResult<SpotOrder>> {
-    const value: SpotOrder = await this.spotOrdersService.findOne(+id);
+    const value: SpotOrder = await this.ordersService.findOne(+id);
     return ValueResult.value(value);
   }
 
   @Get('clientOrderId/:clientOrderId')
   async getByClientOrderId(@Param('clientOrderId') clientOrderId: string): Promise<ValueResult<SpotOrder>> {
-    const value: SpotOrder = await this.spotOrdersService.findByClientOrderId(clientOrderId);
+    const value: SpotOrder = await this.ordersService.findByClientOrderId(clientOrderId);
     return ValueResult.value(value);
   }
 
   @Put(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateSpotOrderDto): Promise<Result> {
-    await this.spotOrdersService.update(+id, dto);
+    await this.ordersService.update(+id, dto);
     return Result.success();
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<Result> {
-    await this.spotOrdersService.remove(+id);
+    await this.ordersService.remove(+id);
     return Result.success();
   }
 
@@ -104,15 +104,16 @@ export class SpotOrdersController {
   }
 
 
-  @Post('placeOrder/:ex')
-  async placeOrder(@Param('ex') ex: string,
-                   @Body() form: OrderForm): Promise<ValueResult<any>> {
+  @Post('placeOrder')
+  async placeOrder(@Body() form: OrderForm): Promise<ValueResult<any>> {
+    const ex = form.ex;
     const api: API = await this.exapisService.findExapi(ex);
 
     const ss = form.side === 'buy' ? 'b' : 's';
     form.clientOrderId = SpotOrder.genClientOrderId(ss, Config.ClientOrderIdPrefixes.web);
 
-    const value = await this.exPriApiService.placeOrder(api, ex, form);
+    const value = await this.exPriApiService.placeOrder(api, form);
+
     if (form.type === 'market') {
       if (form.baseCcy && form.quoteCcy) {
         setTimeout(() => {
@@ -138,11 +139,12 @@ export class SpotOrdersController {
     return ValueResult.value(value);
   }
 
-  @Post('cancelOrder/:ex')
-  async cancelOrder(@Param('ex') ex: string,
-                    @Body() form: CancelOrderForm): Promise<ValueResult<any>> {
+
+  @Post('cancelOrder')
+  async cancelOrder(@Body() form: CancelOrderForm): Promise<ValueResult<any>> {
+    const ex = form.ex;
     const api: API = await this.exapisService.findExapi(ex);
-    const value = await this.exPriApiService.cancelOrder(api, ex, form);
+    const value = await this.exPriApiService.cancelOrder(api, form);
 
     await this.exPriSyncService.syncExAssets(ex).catch(console.error);
 

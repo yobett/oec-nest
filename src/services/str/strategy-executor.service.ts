@@ -396,6 +396,7 @@ export class StrategyExecutorService {
     }
 
     const orderForm = new OrderForm();
+    orderForm.ex = strategy.ex;
     orderForm.side = strategy.side;
     orderForm.type = 'market';
     orderForm.symbol = strategy.symbol;
@@ -416,7 +417,7 @@ export class StrategyExecutorService {
 
     let placeOrderResult;
     try {
-      placeOrderResult = await this.exPriApiService.placeOrder(api, ex, orderForm);
+      placeOrderResult = await this.exPriApiService.placeOrder(api, orderForm);
     } catch (e) {
       const formStr = JSON.stringify(orderForm);
       this.logger.error(formStr);

@@ -1,4 +1,5 @@
 export class OrderForm {
+  ex: string;
   symbol: string;
   side: 'buy' | 'sell';
   type: 'market' | 'limit';
@@ -13,6 +14,7 @@ export class OrderForm {
 }
 
 export class CancelOrderForm {
+  ex: string;
   orderId: string;
   symbol?: string;
 }

@@ -55,7 +55,7 @@ export class PriSyncTasks {
       }
       if (assetSyncResult.create > 0 || assetSyncResult.update > 0) {
         this.logger.debug(`同步订单（${ex}） ...`);
-        const orderSyncResult: SyncResult = await this.exPriSyncService.syncOrdersDefaultFor(Exch.CODE_BA);
+        const orderSyncResult: SyncResult = await this.exPriSyncService.syncOrdersDefaultFor(ex);
         const resultStr = JSON.stringify(orderSyncResult, null, 2);
         this.logger.debug('同步订单结果：\n' + resultStr);
       }

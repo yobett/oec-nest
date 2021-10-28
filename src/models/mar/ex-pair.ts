@@ -2,13 +2,19 @@ import { Column, Entity, Index } from 'typeorm';
 import { PartialType } from '@nestjs/mapped-types';
 import { Model } from '../model';
 
+
+export interface PairBQ {
+  baseCcy: string;
+  quoteCcy: string;
+}
+
 @Entity()
 @Index(['baseCcy', 'quoteCcy'], {unique: true})
 @Index(['quoteCcy'])
 @Index(['baSymbol'], {unique: true})
 @Index(['oeSymbol'], {unique: true})
 @Index(['hbSymbol'], {unique: true})
-export class ExPair extends Model {
+export class ExPair extends Model implements PairBQ {
 
   @Column()
   baseCcy: string;
@@ -42,17 +48,15 @@ export class CreateExPairDto {
 export class UpdateExPairDto extends PartialType(CreateExPairDto) {
 }
 
-export class ExPairFilter {
+export class ExPairFilter implements PairBQ {
   ex: string;
   baseCcy: string;
   quoteCcy: string;
   concerned: boolean | string;
 }
 
-export interface ExchangePair {
+export interface ExchangePair extends PairBQ {
   ex: string;
-  baseCcy: string;
-  quoteCcy: string;
   symbol: string;
 }
 

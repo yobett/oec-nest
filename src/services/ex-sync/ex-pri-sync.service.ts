@@ -68,8 +68,10 @@ export class ExPriSyncService {
   }
 
 
-  async syncExAssets(exCode: string): Promise<SyncResult> {
-    const api = await this.exapisService.findExapi(exCode);
+  async syncExAssets(exCode: string, api?: API): Promise<SyncResult> {
+    if (!api) {
+      api = await this.exapisService.findExapi(exCode);
+    }
     if (exCode === Exch.CODE_OE) {
       return this.oePriSyncService.syncAssets(api);
     }

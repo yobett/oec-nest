@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Not, Repository } from 'typeorm';
 import { FindConditions } from 'typeorm/find-options/FindConditions';
 import { groupBy, toPairs } from 'lodash';
-import { CreateExPairDto, ExchangePair, ExPair, ExPairFilter, UpdateExPairDto } from '../../models/mar/ex-pair';
+import { CreateExPairDto, ExchangePair, ExPair, ExPairFilter, PairBQ, UpdateExPairDto } from '../../models/mar/ex-pair';
 import { Pager, QueryParams, Sorter } from '../../models/query-params';
 import { CountList } from '../../models/result';
 
@@ -23,7 +23,7 @@ export class ExPairsService {
     return this.pairsRepository.findOne({baseCcy, quoteCcy});
   }
 
-  findPairs(baseQuotes: { baseCcy: string, quoteCcy: string }[]): Promise<ExPair[]> {
+  findPairs(baseQuotes: PairBQ[]): Promise<ExPair[]> {
     const bqGroups = groupBy(baseQuotes, 'quoteCcy');
     const conditions: FindConditions<ExPair>[] = toPairs(bqGroups)
       .map(([quoteCcy, bqs]) => {

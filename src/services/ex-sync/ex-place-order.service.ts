@@ -45,8 +45,8 @@ export class ExPlaceOrderService {
   }
 
   async placeOrder(api: API,
-                   ex: string,
                    form: OrderForm): Promise<any> {
+    const ex = form.ex;
     if (!api) {
       throw new Error(`API未配置（${ex}）`);
     }
@@ -119,8 +119,8 @@ export class ExPlaceOrderService {
   }
 
   async cancelOrder(api: API,
-                    ex: string,
                     form: CancelOrderForm): Promise<any> {
+    const ex = form.ex;
     if (!api) {
       throw new Error(`API未配置（${ex}）`);
     }

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Console } from 'nestjs-console';
 import { groupBy } from 'lodash';
 
-import { ExPair } from '../../models/mar/ex-pair';
+import { ExPair, PairBQ } from '../../models/mar/ex-pair';
 import { Exch } from '../../models/sys/exch';
 import { BaPubApiService } from '../ex-api/ba/ba-pub-api.service';
 import { OePubApiService } from '../ex-api/oe/oe-pub-api.service';
@@ -18,9 +18,7 @@ import { ExPairsService } from './pairs.service';
 export declare type CurrentPrice = { source: string, price: number };
 export declare type CurrentPrices = { [key: string]: CurrentPrice };
 
-export interface PriceRequest {
-  baseCcy: string;
-  quoteCcy: string;
+export interface PriceRequest extends PairBQ{
   ex: string;
 }
 

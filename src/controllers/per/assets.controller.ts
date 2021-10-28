@@ -22,11 +22,16 @@ export class AssetsController {
   }
 
   @Get()
-  async findAll(@Query('convert') convert: string): Promise<ListResult<Asset>> {
+  async findAll(@Query('convert') convert: string,
+                @Query('filterValue') filterValue?: number): Promise<ListResult<Asset>> {
 
-    const assets: Asset[] = await this.assetService.findAll();
+    let assets: Asset[] = await this.assetService.findAll();
     try {
       await this.assetEvaluatorService.evaluate1(assets, convert);
+      if (filterValue) {
+        const threshold = +filterValue;
+        assets = assets.filter(a => a.holdingValue > threshold);
+      }
     } catch (e) {
       console.error(e);
     }

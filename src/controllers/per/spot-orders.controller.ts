@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Logger, Param, Post, Put, Query, UseGuards, } from '@nestjs/common';
+import { flatten, groupBy, toPairs } from 'lodash';
 import { OrderTimeLineQueryForm, SpotOrder, UpdateSpotOrderDto } from '../../models/per/spot-order';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -13,6 +14,14 @@ import { ExPriSyncService } from '../../services/ex-sync/ex-pri-sync.service';
 import { ExPlaceOrderService } from '../../services/ex-sync/ex-place-order.service';
 import { Config } from '../../common/config';
 import { ExchangePair } from '../../models/mar/ex-pair';
+
+
+interface PlaceOrderResult {
+  ex: string;
+  symbol: string;
+  success: boolean;
+  message?: string;
+}
 
 @Controller('per/spot-orders')
 @UseGuards(JwtAuthGuard)
@@ -137,6 +146,54 @@ export class SpotOrdersController {
       }, Config.PlaceOrderSyncDelay);
     }
     return ValueResult.value(value);
+  }
+
+  async placeOrdersForEx(ex: string, forms: OrderForm[]): Promise<PlaceOrderResult[]> {
+    const api: API = await this.exapisService.findExapi(ex);
+    const results: PlaceOrderResult[] = [];
+    for (const form of forms) {
+      const ex = form.ex;
+
+      const ss = form.side === 'buy' ? 'b' : 's';
+      form.clientOrderId = SpotOrder.genClientOrderId(ss, Config.ClientOrderIdPrefixes.web);
+
+      const result: PlaceOrderResult = {ex, symbol: form.symbol, success: true};
+
+      await this.exPriApiService.placeOrder(api, form).catch(e => {
+        result.success = false;
+        result.message = e.message;
+      });
+
+      results.push(result);
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    if (successCount > 0) {
+      setTimeout(async () => {
+        if (forms.some(form => form.type === 'market')) {
+          this.logger.log('下单后同步订单');
+          await this.exPriSyncService.syncOrdersDefaultFor(ex);
+        }
+        await this.exPriSyncService.syncExAssets(ex, api);
+        this.logger.log('下单后同步资产');
+      }, Config.PlaceOrderSyncDelay);
+    }
+
+    return results;
+  }
+
+
+  @Post('placeMultiOrders')
+  async placeOrders(@Body() forms: OrderForm[]): Promise<ListResult<PlaceOrderResult>> {
+
+    const exFormPairs = toPairs(groupBy(forms, 'ex'));
+    const promises: Promise<PlaceOrderResult[]>[] = exFormPairs
+      .map(([ex, exForms]) => this.placeOrdersForEx(ex, exForms));
+
+    const exResults: PlaceOrderResult[][] = await Promise.all(promises);
+    const results: PlaceOrderResult[] = flatten(exResults);
+
+    return ListResult.list(results);
   }
 
 

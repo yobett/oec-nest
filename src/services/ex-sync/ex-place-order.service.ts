@@ -9,6 +9,7 @@ import { roundNumber, toFixedDown } from '../../common/utils';
 import { BaPubApiService } from '../ex-api/ba/ba-pub-api.service';
 import { HbPubSyncService } from './hb/hb-pub-sync.service';
 import { OePubApiService } from '../ex-api/oe/oe-pub-api.service';
+import { ExPendingOrdersService } from './ex-pending-orders.service';
 
 
 type BaExchangeInfo = {
@@ -27,7 +28,8 @@ export class ExPlaceOrderService {
               private hbPriService: HbPriApiService,
               private baPubApiService: BaPubApiService,
               private oePubApiService: OePubApiService,
-              private hbPubSyncService: HbPubSyncService) {
+              private hbPubSyncService: HbPubSyncService,
+              private exPendingOrdersService: ExPendingOrdersService) {
 
   }
 
@@ -45,7 +47,7 @@ export class ExPlaceOrderService {
   }
 
   async placeOrder(api: API,
-                   form: OrderForm): Promise<any> {
+                   form: OrderForm): Promise<{ orderId: string }> {
     const ex = form.ex;
     if (!api) {
       throw new Error(`API未配置（${ex}）`);
@@ -105,17 +107,24 @@ export class ExPlaceOrderService {
     if (form.price) {
       form.price = +roundNumber(form.price);
     }
-    let value;
+
+    let orderId: string;
     if (ex === Exch.CODE_BA) {
-      value = await this.baPriService.placeOrder(api, form);
+      const result = await this.baPriService.placeOrder(api, form);
+      orderId = result.orderId;
     } else if (ex === Exch.CODE_OE) {
-      value = await this.oePriService.placeOrder(api, form);
+      const {clOrdId} = await this.oePriService.placeOrder(api, form);
+      orderId = clOrdId;
     } else if (ex === Exch.CODE_HB) {
-      value = await this.hbPriService.placeOrder(api, form);
+      orderId = await this.hbPriService.placeOrder(api, form);
     } else {
       throw new Error('未知交易所：' + ex);
     }
-    return value;
+    if (orderId) {
+      this.exPendingOrdersService.notifyNewOrderPlaced(orderId, form);
+    }
+
+    return {orderId};
   }
 
   async cancelOrder(api: API,

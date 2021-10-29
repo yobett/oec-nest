@@ -1,6 +1,6 @@
 import { Column, Entity, Index } from 'typeorm';
-import { PartialType } from '@nestjs/mapped-types';
 import { Model } from '../model';
+import { PairBQ } from '../mar/ex-pair';
 
 @Entity()
 @Index(['ex', 'orderId'], {unique: true})
@@ -8,7 +8,7 @@ import { Model } from '../model';
 @Index(['baseCcy', 'quoteCcy'])
 @Index(['createTs'])
 @Index(['updateTs'])
-export class SpotOrder extends Model {
+export class SpotOrder extends Model implements PairBQ {
 
   @Column()
   ex: string;
@@ -75,27 +75,7 @@ export class SpotOrder extends Model {
   }
 }
 
-
-export class CreateSpotOrderDto {
-  ex: string;
-  pairSymbol: string;
-  baseCcy: string;
-  quoteCcy: string;
-  orderId: string;
-  clientOrderId: string;
-  side: string;
-  type: string;
-  status: string;
-  askPrice: number;
-  askQty: number;
-  avgPrice: number;
-  execQty: number;
-  quoteAmount: number;
-  createTs: number;
-  updateTs: number;
-}
-
-export class UpdateSpotOrderDto extends PartialType(CreateSpotOrderDto) {
+export class UpdateSpotOrderDto {
   type: string;
   status: string;
   askPrice: number;

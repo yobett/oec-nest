@@ -5,7 +5,7 @@ import { BaPriApiService } from '../../ex-api/ba/ba-pri-api.service';
 import { Exch } from '../../../models/sys/exch';
 import { Asset, CreateAssetDto } from '../../../models/per/asset';
 import { SyncResult } from '../../../models/sync-result';
-import { CreateSpotOrderDto, SpotOrder, UpdateSpotOrderDto } from '../../../models/per/spot-order';
+import { SpotOrder, UpdateSpotOrderDto } from '../../../models/per/spot-order';
 import { ExPairsService } from '../../mar/pairs.service';
 import { ExchangePair } from '../../../models/mar/ex-pair';
 import { LastTransactionService } from '../../per/last-transaction.service';
@@ -78,7 +78,7 @@ export class BaPriSyncService {
     return {update, create, skip} as SyncResult;
   }
 
-  static setOrderProps(order: SpotOrder | CreateSpotOrderDto | UpdateSpotOrderDto, odr: any): void {
+  static setOrderProps(order: SpotOrder | UpdateSpotOrderDto, odr: any): void {
     order.type = odr.type.toLowerCase();
     order.status = odr.status.toLowerCase();
     order.askPrice = +odr.price;
@@ -93,7 +93,7 @@ export class BaPriSyncService {
     order.updateTs = +odr.updateTime;
   }
 
-  static setNewOrderProps(order: SpotOrder | CreateSpotOrderDto, odr: any): void {
+  static setNewOrderProps(order: SpotOrder, odr: any): void {
     order.ex = this.exchCode;
     order.pairSymbol = odr.symbol;
     order.orderId = '' + odr.orderId;
@@ -126,7 +126,7 @@ export class BaPriSyncService {
         Object.assign(theOrder, order);
         syncResult.update++;
       } else {
-        const order = new CreateSpotOrderDto();
+        const order = new SpotOrder();
         order.baseCcy = baseCcy;
         order.quoteCcy = quoteCcy;
         BaPriSyncService.setNewOrderProps(order, odr);

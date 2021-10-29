@@ -12,6 +12,7 @@ import { OePriApiService } from '../ex-api/oe/oe-pri-api.service';
 import { HbPriApiService } from '../ex-api/hb/hb-pri-api.service';
 import { ExPairsService } from '../mar/pairs.service';
 import { ExchangePair } from '../../models/mar/ex-pair';
+import { ExPendingOrdersService } from './ex-pending-orders.service';
 
 @Injectable()
 export class ExPriSyncService {
@@ -23,7 +24,8 @@ export class ExPriSyncService {
               private baPriSyncService: BaPriSyncService,
               private hbPriSyncService: HbPriSyncService,
               private pairsService: ExPairsService,
-              private exapisService: ExapisService) {
+              private exapisService: ExapisService,
+              private exPendingOrdersService: ExPendingOrdersService) {
   }
 
   async syncEach(syncAction: (exCode: string, api: API) => Promise<SyncResult>): Promise<SyncResults> {
@@ -173,19 +175,29 @@ export class ExPriSyncService {
     const promises: any[] = [];
     const oeApi = apis.get(Exch.CODE_OE);
     if (oeApi) {
-      promises.push(this.oePriService.pendingOrders(oeApi).catch(err => {
-        console.error(err);
-        return [];
-      }));
+      promises.push(this.oePriService.pendingOrders(oeApi)
+        .then(orders => {
+          this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_OE, orders);
+          return orders;
+        })
+        .catch(err => {
+          console.error(err);
+          return [];
+        }));
     } else {
       promises.push(Promise.resolve([]));
     }
     const baApi = apis.get(Exch.CODE_BA);
     if (baApi) {
-      promises.push(this.baPriService.openOrders(baApi).catch(err => {
-        console.error(err);
-        return [];
-      }));
+      promises.push(this.baPriService.openOrders(baApi)
+        .then(orders => {
+          this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_BA, orders);
+          return orders;
+        })
+        .catch(err => {
+          console.error(err);
+          return [];
+        }));
     } else {
       promises.push(Promise.resolve([]));
     }
@@ -193,10 +205,15 @@ export class ExPriSyncService {
     if (hbApi) {
       const hbPairs = await this.pairsService.findByExConcerned(Exch.CODE_HB);
       const hbSymbols = hbPairs.map(p => p.hbSymbol);
-      promises.push(this.hbPriService.openOrders(hbApi, hbSymbols).catch(err => {
-        console.error(err);
-        return [];
-      }));
+      promises.push(this.hbPriService.openOrders(hbApi, hbSymbols)
+        .then(orders => {
+          this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_HB, orders);
+          return orders;
+        })
+        .catch(err => {
+          console.error(err);
+          return [];
+        }));
     } else {
       promises.push(Promise.resolve([]));
     }

@@ -5,7 +5,7 @@ import { Exch } from '../../../models/sys/exch';
 import { Asset, CreateAssetDto } from '../../../models/per/asset';
 import { OePriApiService } from '../../ex-api/oe/oe-pri-api.service';
 import { SyncResult } from '../../../models/sync-result';
-import { CreateSpotOrderDto, SpotOrder, UpdateSpotOrderDto } from '../../../models/per/spot-order';
+import { SpotOrder, UpdateSpotOrderDto } from '../../../models/per/spot-order';
 import { ExPairsService } from '../../mar/pairs.service';
 import { ExPair } from '../../../models/mar/ex-pair';
 import { LastTransactionService } from '../../per/last-transaction.service';
@@ -78,7 +78,7 @@ export class OePriSyncService {
     return {update, create, skip} as SyncResult;
   }
 
-  static setOrderProps(order: SpotOrder | CreateSpotOrderDto | UpdateSpotOrderDto, odr: any): void {
+  static setOrderProps(order: SpotOrder | UpdateSpotOrderDto, odr: any): void {
     order.type = odr.ordType;
     order.status = odr.state;
     order.askPrice = +odr.px;
@@ -89,7 +89,7 @@ export class OePriSyncService {
     order.updateTs = +odr.uTime;
   }
 
-  static setNewOrderProps(order: SpotOrder | CreateSpotOrderDto, odr: any): void {
+  static setNewOrderProps(order: SpotOrder, odr: any): void {
     order.ex = this.exchCode;
     order.pairSymbol = odr.instId;
     order.orderId = odr.ordId;
@@ -146,7 +146,7 @@ export class OePriSyncService {
         if (!pair) {
           throw new Error('尚未同步交易对（OE）');
         }
-        const order = new CreateSpotOrderDto();
+        const order = new SpotOrder();
         order.baseCcy = pair.baseCcy;
         order.quoteCcy = pair.quoteCcy;
         OePriSyncService.setNewOrderProps(order, odr);

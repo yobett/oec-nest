@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Like, Not, Repository } from 'typeorm';
 import { FindConditions } from 'typeorm/find-options/FindConditions';
 import {
-  CreateSpotOrderDto,
   OrderTimeLineQueryForm,
   SpotOrder,
   SpotOrderFilter,
@@ -11,13 +10,13 @@ import {
 } from '../../models/per/spot-order';
 import { Pager, Sorter } from '../../models/query-params';
 import { CountList } from '../../models/result';
+import { ExPendingOrdersService } from '../ex-sync/ex-pending-orders.service';
 
 
 @Injectable()
 export class SpotOrderService {
-  constructor(
-    @InjectRepository(SpotOrder)
-    protected readonly orderRepository: Repository<SpotOrder>,
+  constructor(@InjectRepository(SpotOrder) protected orderRepository: Repository<SpotOrder>,
+              protected exPendingOrdersService: ExPendingOrdersService
   ) {
   }
 
@@ -125,11 +124,14 @@ export class SpotOrderService {
     return await this.orderRepository.query(sql, [ex, ccy, ccy]);
   }
 
-  async create(dto: CreateSpotOrderDto): Promise<SpotOrder> {
-    if (dto.updateTs === 0 || dto.updateTs === null) {
-      dto.updateTs = dto.createTs;
+  async create(order: SpotOrder): Promise<SpotOrder> {
+    if (order.updateTs === 0 || order.updateTs === null) {
+      order.updateTs = order.createTs;
     }
-    return this.orderRepository.save(dto);
+
+    this.exPendingOrdersService.notifySynchronized(order);
+
+    return this.orderRepository.save(order);
   }
 
   async update(id: number, dto: UpdateSpotOrderDto): Promise<void> {

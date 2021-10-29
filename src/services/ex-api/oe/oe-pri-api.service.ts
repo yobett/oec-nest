@@ -128,7 +128,7 @@ export class OePriApiService {
     return body.data;
   }
 
-  async placeOrder(api: API, order: OrderForm): Promise<any> {
+  async placeOrder(api: API, order: OrderForm): Promise<{ clOrdId: string }> {
     const paramObj: any = {
       instId: order.symbol,
       tdMode: 'cash',

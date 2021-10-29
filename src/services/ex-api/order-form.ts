@@ -1,4 +1,6 @@
-export class OrderForm {
+import { ExchangePair } from '../../models/mar/ex-pair';
+
+export class OrderForm implements ExchangePair {
   ex: string;
   symbol: string;
   side: 'buy' | 'sell';
@@ -7,8 +9,8 @@ export class OrderForm {
   quoteQuantity: number;
   price: number; // type=LIMIT
 
-  baseCcy?: string;
-  quoteCcy?: string;
+  baseCcy: string;
+  quoteCcy: string;
 
   clientOrderId?: string;
 }

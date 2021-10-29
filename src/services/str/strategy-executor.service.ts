@@ -400,6 +400,8 @@ export class StrategyExecutorService {
     orderForm.side = strategy.side;
     orderForm.type = 'market';
     orderForm.symbol = strategy.symbol;
+    orderForm.baseCcy = strategy.baseCcy;
+    orderForm.quoteCcy = strategy.quoteCcy;
     if (isSell) {
       orderForm.quantity = volume;
     } else {
@@ -430,7 +432,7 @@ export class StrategyExecutorService {
     this.logger.log(formStr);
     this.logger.log(placeOrderResult);
     this.notificationService.pushNotification('已下单',
-      `strategy: ${this.notificationStrategyStr(strategy)}),\nForm: ${formStr}`);
+      `strategy: #${strategy.id},\nForm: ${formStr}`);
 
     strategy.status = 'placed';
     strategy.orderPlacedAt = new Date();
@@ -466,7 +468,7 @@ export class StrategyExecutorService {
   }
 
   private notificationStrategyStr(s: Strategy): string {
-    return `#${s.id}, ${s.type}, ${s.ex}, ${s.baseCcy}-${s.quoteCcy}`;
+    return `#${s.id}, ${s.ex}, ${s.type}, ${s.side}, ${s.baseCcy}-${s.quoteCcy}`;
   }
 
   private notifyWatchLevelChange(s: Strategy, level: string): void {

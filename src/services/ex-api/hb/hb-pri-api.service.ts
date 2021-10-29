@@ -195,7 +195,7 @@ export class HbPriApiService {
     return orders;
   }
 
-  async placeOrder(api: API, order: OrderForm): Promise<any> {
+  async placeOrder(api: API, order: OrderForm): Promise<string> {
     const spotAccount = await this.getSpotAccount(api);
     const paramObj: any = {
       'account-id': '' + spotAccount.id,

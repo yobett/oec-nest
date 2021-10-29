@@ -132,7 +132,7 @@ export class BaPriApiService {
     return this.getData(api, '/api/v3/openOrders', paramsWithoutTs);
   }
 
-  async placeOrder(api: API, order: OrderForm): Promise<any> {
+  async placeOrder(api: API, order: OrderForm): Promise<{ orderId: string }> {
     const orderType = order.type;
     let paramsWithoutTs = 'symbol=' + order.symbol + '&side=' + order.side + '&type=' + orderType.toUpperCase();
     if (order.quantity) {

@@ -124,20 +124,18 @@ export class SpotOrdersController {
     const value = await this.exPriApiService.placeOrder(api, form);
 
     if (form.type === 'market') {
-      if (form.baseCcy && form.quoteCcy) {
-        setTimeout(() => {
-          const exp: ExchangePair = {
-            ex,
-            baseCcy: form.baseCcy,
-            quoteCcy: form.quoteCcy,
-            symbol: form.symbol
-          };
-          this.exPriSyncService.syncAfterPlacedOrder(exp)
-            .then(updated => {
-              this.logger.log('下单后同步，更新：' + updated);
-            });
-        }, Config.PlaceOrderSyncDelay);
-      }
+      setTimeout(() => {
+        const exp: ExchangePair = {
+          ex,
+          baseCcy: form.baseCcy,
+          quoteCcy: form.quoteCcy,
+          symbol: form.symbol
+        };
+        this.exPriSyncService.syncAfterPlacedOrder(exp)
+          .then(updated => {
+            this.logger.log('下单后同步，更新：' + updated);
+          });
+      }, Config.PlaceOrderSyncDelay);
     } else {
       setTimeout(() => {
         this.exPriSyncService.syncExAssets(ex).then(result => {

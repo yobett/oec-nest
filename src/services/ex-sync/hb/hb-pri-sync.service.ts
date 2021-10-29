@@ -5,7 +5,7 @@ import { SpotOrderService } from '../../per/spot-order.service';
 import { Exch } from '../../../models/sys/exch';
 import { Asset, CreateAssetDto } from '../../../models/per/asset';
 import { SyncResult } from '../../../models/sync-result';
-import { CreateSpotOrderDto, SpotOrder, UpdateSpotOrderDto } from '../../../models/per/spot-order';
+import { SpotOrder, UpdateSpotOrderDto } from '../../../models/per/spot-order';
 import { ExPairsService } from '../../mar/pairs.service';
 import { HbPriApiService } from '../../ex-api/hb/hb-pri-api.service';
 import { ExchangePair, ExPair } from '../../../models/mar/ex-pair';
@@ -95,7 +95,7 @@ export class HbPriSyncService {
     return {update, create, skip} as SyncResult;
   }
 
-  static setOrderProps(order: SpotOrder | CreateSpotOrderDto | UpdateSpotOrderDto, odr: any): void {
+  static setOrderProps(order: SpotOrder | UpdateSpotOrderDto, odr: any): void {
     let orderType: string = odr.type;
     if (orderType.indexOf('-') > 0) { // sell-limit
       orderType = orderType.substr(orderType.indexOf('-') + 1);
@@ -114,7 +114,7 @@ export class HbPriSyncService {
     order.updateTs = +odr['finished-at'];
   }
 
-  static setNewOrderProps(order: SpotOrder | CreateSpotOrderDto, odr: any): void {
+  static setNewOrderProps(order: SpotOrder, odr: any): void {
     order.ex = this.exchCode;
     order.pairSymbol = odr.symbol;
     order.orderId = '' + odr.id;
@@ -142,7 +142,7 @@ export class HbPriSyncService {
         Object.assign(theOrder, order);
         syncResult.update++;
       } else {
-        const order = new CreateSpotOrderDto();
+        const order = new SpotOrder();
         order.baseCcy = pair.baseCcy;
         order.quoteCcy = pair.quoteCcy;
         HbPriSyncService.setNewOrderProps(order, odr);

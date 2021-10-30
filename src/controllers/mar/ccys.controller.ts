@@ -38,6 +38,12 @@ export class CcysController {
     return ListResult.list(list);
   }
 
+  @Get('concerned/codes')
+  async findConcernedCodes(): Promise<ListResult<string>> {
+    const list: string[] = await this.ccysService.findConcernedCodes();
+    return ListResult.list(list);
+  }
+
   @Get(':id')
   async getById(@Param('id') id: string): Promise<ValueResult<Ccy>> {
     const value: Ccy = await this.ccysService.findOne(+id);

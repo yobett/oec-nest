@@ -71,6 +71,15 @@ export class CcysService {
     return this.ccysRepository.find({concerned: true});
   }
 
+  async findConcernedCodes(): Promise<string[]> {
+    const ccys = await this.ccysRepository.find({
+      where: {concerned: true},
+      select: ['code'],
+      order: {no: 'ASC'}
+    });
+    return ccys.map(a => a.code);
+  }
+
   async create(createCcyDto: CreateCcyDto): Promise<Ccy> {
     return this.ccysRepository.save(createCcyDto);
   }

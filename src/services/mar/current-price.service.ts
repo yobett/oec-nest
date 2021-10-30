@@ -7,7 +7,6 @@ import { Exch } from '../../models/sys/exch';
 import { BaPubApiService } from '../ex-api/ba/ba-pub-api.service';
 import { OePubApiService } from '../ex-api/oe/oe-pub-api.service';
 import { HbPubApiService } from '../ex-api/hb/hb-pub-api.service';
-import { Ccy } from '../../models/mar/ccy';
 import { API, Exapi } from '../../models/sys/exapi';
 import { Quote } from '../../models/mar/quote';
 import { CcysService } from './ccys.service';
@@ -18,7 +17,7 @@ import { ExPairsService } from './pairs.service';
 export declare type CurrentPrice = { source: string, price: number };
 export declare type CurrentPrices = { [key: string]: CurrentPrice };
 
-export interface PriceRequest extends PairBQ{
+export interface PriceRequest extends PairBQ {
   ex: string;
 }
 
@@ -61,12 +60,10 @@ export class CurrentPriceService {
   }
 
   async ccyQuotes(convert?: string): Promise<Quote[]> {
-
-    const list: Ccy[] = await this.ccysService.findConcerned();
-    if (list.length === 0) {
+    const symbols = await this.ccysService.findConcernedCodes();
+    if (symbols.length === 0) {
       return [];
     }
-    const symbols = list.map(c => c.code);
 
     convert = convert || 'USD';
     const api: API = await this.exapisService.findExapi(Exapi.EX_CMC);

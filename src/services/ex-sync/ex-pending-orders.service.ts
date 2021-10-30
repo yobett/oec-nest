@@ -77,16 +77,19 @@ export class ExPendingOrdersService {
       return;
     }
     process.nextTick(() => {
-      const currentObs = this.knownPendingOrders[order.ex];
+      const ex = order.ex;
+      const currentObs = this.knownPendingOrders[ex];
       if (!currentObs) {
-        console.error('未知交易所：' + order.ex);
+        console.error('未知交易所：' + ex);
         return;
       }
       const ob = orderBasicFromOrder(order);
       const currentOb = currentObs.find(cob => cob.ex === ob.ex && cob.orderId === ob.orderId);
       if (currentOb) {
-        this.knownPendingOrders[order.ex] = currentObs.filter(cob => !(cob.ex === ob.ex && cob.orderId === ob.orderId));
-        this.pushNotification(ob);
+        this.knownPendingOrders[ex] = currentObs.filter(cob => !(cob.ex === ob.ex && cob.orderId === ob.orderId));
+        if (order.status !== 'canceled' && order.status !== 'submitted') {
+          this.pushNotification(currentOb);
+        }
       }
     });
   }
@@ -102,7 +105,7 @@ export class ExPendingOrdersService {
       for (const ob of obs) {
         const currentOb = currentObs.find(cob => cob.ex === ob.ex && cob.orderId === ob.orderId);
         if (currentOb) {
-          this.pushNotification(ob);
+          this.pushNotification(currentOb);
         }
       }
       this.knownPendingOrders[ex] = obs;

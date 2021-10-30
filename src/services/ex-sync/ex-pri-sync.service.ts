@@ -158,13 +158,10 @@ export class ExPriSyncService {
       throw new Error('未知交易所：' + ex);
     }
 
-    for (const so of list) {
-      if (!so.baseCcy) {
-        const pair = await this.pairsService.findBySymbol(so.ex, so.pairSymbol);
-        so.baseCcy = pair.baseCcy;
-        so.quoteCcy = pair.quoteCcy;
-      }
-    }
+    await this.setOrdersBQ(list);
+
+    this.exPendingOrdersService.notifyFetchedEx(ex, list);
+
     return list;
   }
 
@@ -172,48 +169,49 @@ export class ExPriSyncService {
 
     const apis: Map<string, API> = await this.exapisService.findExapis();
 
-    const promises: any[] = [];
+    let successFetchedOe = false;
+    let successFetchedBa = false;
+    let successFetchedHb = false;
+
+    const promises: Promise<any>[] = [];
     const oeApi = apis.get(Exch.CODE_OE);
     if (oeApi) {
-      promises.push(this.oePriService.pendingOrders(oeApi)
-        .then(orders => {
-          this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_OE, orders);
-          return orders;
-        })
+      successFetchedOe = true;
+      const oePromise: Promise<any> = this.oePriService.pendingOrders(oeApi)
         .catch(err => {
+          successFetchedOe = false
           console.error(err);
           return [];
-        }));
+        });
+      promises.push(oePromise);
     } else {
       promises.push(Promise.resolve([]));
     }
     const baApi = apis.get(Exch.CODE_BA);
     if (baApi) {
-      promises.push(this.baPriService.openOrders(baApi)
-        .then(orders => {
-          this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_BA, orders);
-          return orders;
-        })
+      successFetchedBa = true;
+      const baPromise: Promise<any> = this.baPriService.openOrders(baApi)
         .catch(err => {
+          successFetchedBa = false;
           console.error(err);
           return [];
-        }));
+        });
+      promises.push(baPromise);
     } else {
       promises.push(Promise.resolve([]));
     }
     const hbApi = apis.get(Exch.CODE_HB);
     if (hbApi) {
+      successFetchedHb = true;
       const hbPairs = await this.pairsService.findByExConcerned(Exch.CODE_HB);
       const hbSymbols = hbPairs.map(p => p.hbSymbol);
-      promises.push(this.hbPriService.openOrders(hbApi, hbSymbols)
-        .then(orders => {
-          this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_HB, orders);
-          return orders;
-        })
+      const hbPromise: Promise<any> = this.hbPriService.openOrders(hbApi, hbSymbols)
         .catch(err => {
+          successFetchedHb = false;
           console.error(err);
           return [];
-        }));
+        });
+      promises.push(hbPromise);
     } else {
       promises.push(Promise.resolve([]));
     }
@@ -242,6 +240,25 @@ export class ExPriSyncService {
 
     list.sort((a, b) => b.createTs - a.createTs);
 
+    await this.setOrdersBQ(list);
+
+    if (successFetchedOe) {
+      const exList = list.filter(o => o.ex === Exch.CODE_OE);
+      this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_OE, exList);
+    }
+    if (successFetchedBa) {
+      const exList = list.filter(o => o.ex === Exch.CODE_BA);
+      this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_BA, exList);
+    }
+    if (successFetchedHb) {
+      const exList = list.filter(o => o.ex === Exch.CODE_HB);
+      this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_HB, exList);
+    }
+
+    return list;
+  }
+
+  private async setOrdersBQ(list: SpotOrder[]) {
     for (const so of list) {
       if (!so.baseCcy) {
         const pair = await this.pairsService.findBySymbol(so.ex, so.pairSymbol);
@@ -249,8 +266,6 @@ export class ExPriSyncService {
         so.quoteCcy = pair.quoteCcy;
       }
     }
-
-    return list;
   }
 
 }

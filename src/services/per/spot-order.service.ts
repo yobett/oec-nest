@@ -10,13 +10,13 @@ import {
 } from '../../models/per/spot-order';
 import { Pager, Sorter } from '../../models/query-params';
 import { CountList } from '../../models/result';
-import { ExPendingOrdersService } from '../ex-sync/ex-pending-orders.service';
+import { ExPendingOrdersHolder } from '../ex-sync/ex-pending-orders-holder';
 
 
 @Injectable()
 export class SpotOrderService {
   constructor(@InjectRepository(SpotOrder) protected orderRepository: Repository<SpotOrder>,
-              protected exPendingOrdersService: ExPendingOrdersService
+              protected exPendingOrdersService: ExPendingOrdersHolder
   ) {
   }
 

@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { differenceBy } from 'lodash';
 import { NotificationService } from '../sys/notification.service';
 import { SpotOrder } from '../../models/per/spot-order';
 import { OrderForm } from '../ex-api/order-form';
 import { ExchangePair } from '../../models/mar/ex-pair';
 import { Exch } from '../../models/sys/exch';
+import { Config } from '../../common/config';
 
-interface OrderBasic extends ExchangePair {
+export interface OrderBasic extends ExchangePair {
   side: string;
   orderId: string;
 }
@@ -21,29 +23,52 @@ function orderBasicFromOrder(order: SpotOrder): OrderBasic {
   };
 }
 
-
 @Injectable()
-export class ExPendingOrdersService {
+export class ExPendingOrdersHolder {
 
   knownPendingOrders: { [ex: string]: OrderBasic[] } = {
     [Exch.CODE_OE]: [],
     [Exch.CODE_BA]: [],
     [Exch.CODE_HB]: [],
-  }
+  };
+
+  lastFetchTimestamps: { [ex: string]: number } = {};
 
   lastNotification: { ts: number, orderBasic: OrderBasic };
 
   constructor(private notificationService: NotificationService) {
   }
 
+  toCheckPendingOrders(ex: string): boolean {
+    const currentObs = this.knownPendingOrders[ex];
+    if (!currentObs) {
+      console.error('未知交易所：' + ex);
+      return;
+    }
+    if (currentObs.length === 0) {
+      return false;
+    }
+    const lastFetchTs = this.lastFetchTimestamps[ex];
+    if (!lastFetchTs) {
+      return true;
+    }
+    const checkInterval = Config.PendingOrdersCheckIntervalMinutes * 60 * 1000;
+    return (Date.now() - lastFetchTs) >= checkInterval;
+  }
+
   private pushNotification(ob: OrderBasic): void {
+    if (!this.lastNotification) {
+      this.doPushNotification(ob);
+      return;
+    }
     const minInterval = 5 * 1000;
-    if (!this.lastNotification || (Date.now() - this.lastNotification.ts) > minInterval) {
+    const elapse = Date.now() - this.lastNotification.ts;
+    if (elapse >= minInterval) {
       this.doPushNotification(ob);
     } else {
       setTimeout(() => {
         this.doPushNotification(ob);
-      }, minInterval);
+      }, minInterval - elapse);
     }
   }
 
@@ -94,22 +119,20 @@ export class ExPendingOrdersService {
     });
   }
 
-  notifyFetchedEx(ex: string, orders: SpotOrder[]): void {
-    process.nextTick(() => {
-      const currentObs = this.knownPendingOrders[ex];
-      if (!currentObs) {
-        console.error('未知交易所：' + ex);
-        return;
-      }
-      const obs: OrderBasic[] = orders.map(orderBasicFromOrder);
-      for (const ob of obs) {
-        const currentOb = currentObs.find(cob => cob.ex === ob.ex && cob.orderId === ob.orderId);
-        if (currentOb) {
-          this.pushNotification(currentOb);
-        }
-      }
-      this.knownPendingOrders[ex] = obs;
-    });
+  refreshKnownPendingOrders(ex: string, orders: SpotOrder[]): OrderBasic[] {
+    const currentObs = this.knownPendingOrders[ex];
+    if (!currentObs) {
+      console.error('未知交易所：' + ex);
+      return;
+    }
+    this.lastFetchTimestamps[ex] = Date.now();
+    const obs: OrderBasic[] = orders.map(orderBasicFromOrder);
+    const disappeared = differenceBy(currentObs, obs, ob => `${ob.ex}.${ob.orderId}`);
+    for (const ob of disappeared) {
+      this.pushNotification(ob);
+    }
+    this.knownPendingOrders[ex] = obs;
+    return disappeared;
   }
 
 }

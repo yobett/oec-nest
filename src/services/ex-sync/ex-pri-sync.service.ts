@@ -12,7 +12,7 @@ import { OePriApiService } from '../ex-api/oe/oe-pri-api.service';
 import { HbPriApiService } from '../ex-api/hb/hb-pri-api.service';
 import { ExPairsService } from '../mar/pairs.service';
 import { ExchangePair } from '../../models/mar/ex-pair';
-import { ExPendingOrdersService } from './ex-pending-orders.service';
+import { ExPendingOrdersHolder, OrderBasic } from './ex-pending-orders-holder';
 
 @Injectable()
 export class ExPriSyncService {
@@ -25,7 +25,7 @@ export class ExPriSyncService {
               private hbPriSyncService: HbPriSyncService,
               private pairsService: ExPairsService,
               private exapisService: ExapisService,
-              private exPendingOrdersService: ExPendingOrdersService) {
+              private exPendingOrdersHolder: ExPendingOrdersHolder) {
   }
 
   async syncEach(syncAction: (exCode: string, api: API) => Promise<SyncResult>): Promise<SyncResults> {
@@ -108,18 +108,18 @@ export class ExPriSyncService {
 
 
   async syncAfterPlacedOrder(exp: ExchangePair): Promise<boolean> {
-
-    const api = await this.exapisService.findExapi(exp.ex);
-    if (exp.ex === Exch.CODE_OE) {
-      return this.oePriSyncService.syncAfterPlacedOrder(api);
+    const exCode: string = exp.ex;
+    const api = await this.exapisService.findExapi(exCode);
+    if (exCode === Exch.CODE_OE) {
+      return this.oePriSyncService.syncAssetAndOrders(api);
     }
-    if (exp.ex === Exch.CODE_BA) {
-      return this.baPriSyncService.syncAfterPlacedOrder(api, exp);
+    if (exCode === Exch.CODE_BA) {
+      return this.baPriSyncService.syncForPair(api, exp);
     }
-    if (exp.ex === Exch.CODE_HB) {
+    if (exCode === Exch.CODE_HB) {
       return this.hbPriSyncService.syncAfterPlacedOrder(api, exp);
     }
-    throw new Error('未知交易所：' + exp.ex);
+    throw new Error('未知交易所：' + exCode);
   }
 
 
@@ -160,7 +160,19 @@ export class ExPriSyncService {
 
     await this.setOrdersBQ(list);
 
-    this.exPendingOrdersService.notifyFetchedEx(ex, list);
+    process.nextTick(async () => {
+      const disappeared: OrderBasic[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(ex, list);
+      if (disappeared.length === 0) {
+        return;
+      }
+      if (ex === Exch.CODE_OE) {
+        await this.oePriSyncService.syncAssetAndOrders(api);
+      } else if (ex === Exch.CODE_BA) {
+        await this.baPriSyncService.syncForPairs(api, disappeared);
+      } else if (ex === Exch.CODE_HB) {
+        await this.hbPriSyncService.syncNewlyFilledOrders(api, disappeared);
+      }
+    });
 
     return list;
   }
@@ -242,18 +254,30 @@ export class ExPriSyncService {
 
     await this.setOrdersBQ(list);
 
-    if (successFetchedOe) {
-      const exList = list.filter(o => o.ex === Exch.CODE_OE);
-      this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_OE, exList);
-    }
-    if (successFetchedBa) {
-      const exList = list.filter(o => o.ex === Exch.CODE_BA);
-      this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_BA, exList);
-    }
-    if (successFetchedHb) {
-      const exList = list.filter(o => o.ex === Exch.CODE_HB);
-      this.exPendingOrdersService.notifyFetchedEx(Exch.CODE_HB, exList);
-    }
+    process.nextTick(async () => {
+      if (successFetchedOe) {
+        const exList = list.filter(o => o.ex === Exch.CODE_OE);
+        const disappeared: OrderBasic[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(Exch.CODE_OE, exList);
+        if (disappeared.length > 0) {
+          await this.oePriSyncService.syncAssetAndOrders(oeApi);
+        }
+      }
+      if (successFetchedBa) {
+        const exList = list.filter(o => o.ex === Exch.CODE_BA);
+        const disappeared: OrderBasic[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(Exch.CODE_BA, exList);
+        if (disappeared.length > 0) {
+          await this.baPriSyncService.syncForPairs(baApi, disappeared);
+        }
+      }
+      if (successFetchedHb) {
+        const exList = list.filter(o => o.ex === Exch.CODE_HB);
+        const disappeared: OrderBasic[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(Exch.CODE_HB, exList);
+        if (disappeared.length > 0) {
+          await this.hbPriSyncService.syncNewlyFilledOrders(hbApi, disappeared);
+        }
+      }
+    });
+
 
     return list;
   }

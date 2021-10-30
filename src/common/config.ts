@@ -44,11 +44,11 @@ const EX_DATA_SYNC = {
 const Minute = 60 * 1000;
 
 const StrategyWatch = {
-  CheckIntervalMinutes: 5,
+  CheckIntervalMinutes: 3,
   StrategyWatchInterval: {
-    loose: 64 * Minute,
-    medium: 16 * Minute,
-    intense: 4 * Minute,
+    loose: 32 * Minute,
+    medium: 8 * Minute,
+    intense: 2 * Minute,
   },
   WatchIntervalPercentFromExpect: {
     intense: 1, // expectingPercent - 1
@@ -80,6 +80,8 @@ const PriceMonitorConfig = {
   PercentDiffThreshold: 2.0
 };
 
+const PendingOrdersCheckIntervalMinutes = 10;
+
 const StableCoins = ['USDT', 'USDC', 'DAI', 'BUSD'];
 
 export const Config = {
@@ -100,5 +102,6 @@ export const Config = {
   ClientOrderIdPrefixes,
   PlaceOrderSyncDelay,
   StableCoins,
-  PriceMonitorConfig
+  PriceMonitorConfig,
+  PendingOrdersCheckIntervalMinutes
 }

@@ -173,7 +173,7 @@ export class OePriSyncService {
   }
 
 
-  async syncAfterPlacedOrder(api: API): Promise<boolean> {
+  async syncAssetAndOrders(api: API): Promise<boolean> {
     const assetSyncResult = await this.syncAssets(api);
     if (assetSyncResult.update === 0 && assetSyncResult.create === 0) {
       return false;

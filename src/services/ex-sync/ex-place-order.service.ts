@@ -9,7 +9,7 @@ import { roundNumber, toFixedDown } from '../../common/utils';
 import { BaPubApiService } from '../ex-api/ba/ba-pub-api.service';
 import { HbPubSyncService } from './hb/hb-pub-sync.service';
 import { OePubApiService } from '../ex-api/oe/oe-pub-api.service';
-import { ExPendingOrdersService } from './ex-pending-orders.service';
+import { ExPendingOrdersHolder } from './ex-pending-orders-holder';
 
 
 type BaExchangeInfo = {
@@ -29,7 +29,7 @@ export class ExPlaceOrderService {
               private baPubApiService: BaPubApiService,
               private oePubApiService: OePubApiService,
               private hbPubSyncService: HbPubSyncService,
-              private exPendingOrdersService: ExPendingOrdersService) {
+              private exPendingOrdersService: ExPendingOrdersHolder) {
 
   }
 

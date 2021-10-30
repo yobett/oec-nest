@@ -8,7 +8,7 @@ import { SyncResult } from '../../../models/sync-result';
 import { SpotOrder, UpdateSpotOrderDto } from '../../../models/per/spot-order';
 import { ExPairsService } from '../../mar/pairs.service';
 import { HbPriApiService } from '../../ex-api/hb/hb-pri-api.service';
-import { ExchangePair, ExPair } from '../../../models/mar/ex-pair';
+import { ExchangePair, PairBQ } from '../../../models/mar/ex-pair';
 import { LastTransactionService } from '../../per/last-transaction.service';
 import { API } from '../../../models/sys/exapi';
 import { Config } from '../../../common/config';
@@ -126,7 +126,7 @@ export class HbPriSyncService {
   }
 
 
-  private async syncOrders(pair: ExPair, odrs: any[], syncResult: SyncResult): Promise<void> {
+  private async syncOrders(pair: PairBQ, odrs: any[], syncResult: SyncResult): Promise<void> {
     // odrs.sort((o1, o2) => (+o1['finished-at']) - (+o2['finished-at']));
     for (const odr of odrs) {
       let theOrder = await this.spotOrderService.findByOrderId(this.exchCode, '' + odr.id);
@@ -212,7 +212,24 @@ export class HbPriSyncService {
       return false;
     }
     const fromDate = Date.now() - 30 * 60 * 1000; // 30m
-    await this.syncOrdersForSymbol(api, exp.symbol, fromDate);
+    const odrs = await this.hbPriApiService.orders(api, exp.symbol, {fromDate});
+    const syncResult = new SyncResult();
+    await this.syncOrders(exp, odrs, syncResult);
+    return true;
+  }
+
+
+  async syncNewlyFilledOrders(api: API, exps: ExchangePair[]): Promise<boolean> {
+    const assetSyncResult = await this.syncAssets(api);
+    if (assetSyncResult.update === 0 && assetSyncResult.create === 0) {
+      return false;
+    }
+    const fromDate = Date.now() - 60 * 60 * 1000; // 60m
+    for (const exp of exps) {
+      const odrs = await this.hbPriApiService.orders(api, exp.symbol, {fromDate});
+      const syncResult = new SyncResult();
+      await this.syncOrders(exp, odrs, syncResult);
+    }
     return true;
   }
 

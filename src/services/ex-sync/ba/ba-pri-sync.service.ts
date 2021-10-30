@@ -166,12 +166,24 @@ export class BaPriSyncService {
   }
 
 
-  async syncAfterPlacedOrder(api: API, exp: ExchangePair): Promise<boolean> {
+  async syncForPair(api: API, exp: ExchangePair): Promise<boolean> {
     const assetSyncResult = await this.syncAssets(api);
     if (assetSyncResult.update === 0 && assetSyncResult.create === 0) {
       return false;
     }
     await this.syncOrders(api, exp.baseCcy, exp.quoteCcy, exp.symbol, assetSyncResult);
+    return true;
+  }
+
+
+  async syncForPairs(api: API, exps: ExchangePair[]): Promise<boolean> {
+    const assetSyncResult = await this.syncAssets(api);
+    if (assetSyncResult.update === 0 && assetSyncResult.create === 0) {
+      return false;
+    }
+    for (const exp of exps) {
+      await this.syncOrders(api, exp.baseCcy, exp.quoteCcy, exp.symbol, assetSyncResult);
+    }
     return true;
   }
 

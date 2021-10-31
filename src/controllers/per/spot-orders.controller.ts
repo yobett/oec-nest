@@ -137,7 +137,7 @@ export class SpotOrdersController {
       }, Config.PlaceOrderSyncDelay);
     } else {
       setTimeout(() => {
-        this.exPriSyncService.syncExAssets(ex).then(result => {
+        this.exPriSyncService.syncExAssets(ex, api).then(result => {
           this.logger.log('下限价单后同步资产');
         });
       }, Config.PlaceOrderSyncDelay);
@@ -167,7 +167,7 @@ export class SpotOrdersController {
     if (successCount > 0) {
       setTimeout(async () => {
         this.logger.log('下单后同步资产、订单');
-        await this.exPriSyncService.syncOrdersForPairs(ex, forms, api);
+        await this.exPriSyncService.syncNewlyOrdersForPairs(ex, forms, api);
       }, Config.PlaceOrderSyncDelay);
     }
 
@@ -195,7 +195,10 @@ export class SpotOrdersController {
     const api: API = await this.exapisService.findExapi(ex);
     const value = await this.exPriApiService.cancelOrder(api, form);
 
-    await this.exPriSyncService.syncExAssets(ex).catch(console.error);
+    setTimeout(async () => {
+      this.logger.log('取消订单后同步资产');
+      await this.exPriSyncService.syncExAssets(ex, api).catch(console.error);
+    }, Config.PlaceOrderSyncDelay);
 
     return ValueResult.value(value);
   }

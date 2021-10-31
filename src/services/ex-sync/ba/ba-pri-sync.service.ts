@@ -40,6 +40,7 @@ export class BaPriSyncService {
     const assets: Asset[] = await this.assetService.findByEx(this.exchCode);
     const assetsMap: Map<string, Asset> = new Map<string, Asset>(assets.map(a => [a.ccy, a]));
 
+    const affected: string[] = [];
     const lastSync = new Date();
     const threshold = Config.EX_DATA_SYNC.UPDATE_ASSET_THRESHOLD;
     for (const balance of balances) {
@@ -56,6 +57,7 @@ export class BaPriSyncService {
             || Math.abs(frozen - asset.frozen) > threshold) {
             await this.assetService.update(asset.id, {holding, frozen, lastSync});
             update++;
+            affected.push(ccy);
           } else {
             skip++;
           }
@@ -73,9 +75,11 @@ export class BaPriSyncService {
         dto.lastSync = lastSync;
         await this.assetService.create(dto);
         create++;
+        affected.push(ccy);
       }
     }
-    return {update, create, skip} as SyncResult;
+
+    return {update, create, skip, payload: affected} as SyncResult;
   }
 
   static setOrderProps(order: SpotOrder | UpdateSpotOrderDto, odr: any): void {
@@ -157,6 +161,16 @@ export class BaPriSyncService {
   async syncOrdersForConcernedPairs(api: API): Promise<SyncResult> {
     const syncResult = new SyncResult();
     const pairs = await this.pairsService.findByExConcerned(this.exchCode);
+    for (const pair of pairs) {
+      await this.syncOrders(api, pair.baseCcy, pair.quoteCcy, pair.baSymbol, syncResult);
+    }
+
+    return syncResult;
+  }
+
+  async syncOrdersForAssets(api: API, assetCodes: string[]): Promise<SyncResult> {
+    const syncResult = new SyncResult();
+    const pairs = await this.pairsService.findByExBaseConcerned(this.exchCode, assetCodes);
     for (const pair of pairs) {
       await this.syncOrders(api, pair.baseCcy, pair.quoteCcy, pair.baSymbol, syncResult);
     }

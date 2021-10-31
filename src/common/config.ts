@@ -72,7 +72,7 @@ const ClientOrderIdPrefixes = {
   strategy: OrderIdPrefix + 'a'
 };
 
-const PlaceOrderSyncDelay = 2 * 1000; // 2s
+const PlaceOrderSyncDelay = 1000; // 1 s
 
 const PriceMonitorConfig = {
   IntervalMinutes: 10,

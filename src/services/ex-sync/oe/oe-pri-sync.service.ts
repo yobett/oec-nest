@@ -41,6 +41,7 @@ export class OePriSyncService {
     const assets: Asset[] = await this.assetService.findByEx(this.exchCode);
     const assetsMap: Map<string, Asset> = new Map<string, Asset>(assets.map(a => [a.ccy, a]));
 
+    const affected: string[] = [];
     const lastSync = new Date();
     const threshold = Config.EX_DATA_SYNC.UPDATE_ASSET_THRESHOLD;
     for (const balance of balances) {
@@ -56,6 +57,7 @@ export class OePriSyncService {
             || Math.abs(frozen - asset.frozen) > threshold) {
             await this.assetService.update(asset.id, {holding, frozen, lastSync});
             update++;
+            affected.push(ccy);
           } else {
             skip++;
           }
@@ -73,9 +75,11 @@ export class OePriSyncService {
         dto.lastSync = lastSync;
         await this.assetService.create(dto);
         create++;
+        affected.push(ccy);
       }
     }
-    return {update, create, skip} as SyncResult;
+
+    return {update, create, skip, payload: affected} as SyncResult;
   }
 
   static setOrderProps(order: SpotOrder | UpdateSpotOrderDto, odr: any): void {

@@ -30,7 +30,9 @@ export class DataSyncPriController {
     const syncResult: SyncResult = await this.exPriSyncService.syncExAssets(ex);
 
     if (syncResult.create > 0 || syncResult.update > 0) {
-      this.syncOrdersAfterAsset(ex);
+      const assetCodes: string[] = syncResult.payload;
+      delete syncResult.payload;
+      this.syncOrdersAfterAsset(ex, assetCodes);
     }
 
     return ValueResult.value(syncResult);
@@ -41,22 +43,24 @@ export class DataSyncPriController {
     const syncResults = await this.exPriSyncService.syncAssets();
 
     for (const ex of [Exch.CODE_BA, Exch.CODE_OE, Exch.CODE_HB]) {
-      const assetSyncResult: SyncResult = syncResults[ex];
-      if (!assetSyncResult) {
+      const syncResult: SyncResult = syncResults[ex];
+      if (!syncResult) {
         continue;
       }
-      if (assetSyncResult.create > 0 || assetSyncResult.update > 0) {
-        this.syncOrdersAfterAsset(ex);
+      if (syncResult.create > 0 || syncResult.update > 0) {
+        const assetCodes: string[] = syncResult.payload;
+        delete syncResult.payload;
+        this.syncOrdersAfterAsset(ex, assetCodes);
       }
     }
 
     return ValueResult.value(syncResults);
   }
 
-  private syncOrdersAfterAsset(ex: string, api?: API) {
+  private syncOrdersAfterAsset(ex: string, assetCodes?: string[]) {
     setTimeout(async () => {
       this.logger.debug(`同步资产后，自动同步订单（${ex}） ...`);
-      const orderSyncResult: SyncResult = await this.exPriSyncService.syncOrdersDefaultFor(ex, api);
+      const orderSyncResult: SyncResult = await this.exPriSyncService.syncOrdersForAssets(ex, assetCodes);
       // const resultStr = JSON.stringify(orderSyncResult, null, 2);
       // this.logger.debug('同步订单结果：\n' + resultStr);
     }, 100);

@@ -48,25 +48,13 @@ export class ExPriSyncService {
     const results = await Promise.all(promises);
     exCodes.forEach((code, i) => {
       syncResults[code] = results[i];
-    })
+    });
 
     return syncResults;
   }
 
   async syncAssets(): Promise<SyncResults> {
-
-    return this.syncEach((exCode: string, api: API): Promise<SyncResult> => {
-      if (exCode === Exch.CODE_OE) {
-        return this.oePriSyncService.syncAssets(api);
-      }
-      if (exCode === Exch.CODE_BA) {
-        return this.baPriSyncService.syncAssets(api);
-      }
-      if (exCode === Exch.CODE_HB) {
-        return this.hbPriSyncService.syncAssets(api);
-      }
-      throw new Error('未知交易所：' + exCode);
-    });
+    return this.syncEach(this.doSyncExAssets.bind(this));
   }
 
 
@@ -74,6 +62,10 @@ export class ExPriSyncService {
     if (!api) {
       api = await this.exapisService.findExapi(exCode);
     }
+    return this.doSyncExAssets(exCode, api);
+  }
+
+  private async doSyncExAssets(exCode: string, api: API): Promise<SyncResult> {
     if (exCode === Exch.CODE_OE) {
       return this.oePriSyncService.syncAssets(api);
     }
@@ -107,6 +99,23 @@ export class ExPriSyncService {
   }
 
 
+  async syncOrdersForAssets(exCode: string, assetCodes: string[], api?: API): Promise<SyncResult> {
+    if (!api) {
+      api = await this.exapisService.findExapi(exCode);
+    }
+    if (exCode === Exch.CODE_OE) {
+      return this.oePriSyncService.syncOrders(api);
+    }
+    if (exCode === Exch.CODE_BA) {
+      return this.baPriSyncService.syncOrdersForAssets(api, assetCodes);
+    }
+    if (exCode === Exch.CODE_HB) {
+      return this.hbPriSyncService.syncOrders2d(api);
+    }
+    throw new Error('未知交易所：' + exCode);
+  }
+
+
   async syncAfterPlacedOrder(exp: ExchangePair): Promise<boolean> {
     const exCode: string = exp.ex;
     const api = await this.exapisService.findExapi(exCode);
@@ -123,7 +132,7 @@ export class ExPriSyncService {
   }
 
 
-  async syncOrdersForPairs(exCode: string, exps: ExchangePair[], api?: API): Promise<SyncResult> {
+  async syncNewlyOrdersForPairs(exCode: string, exps: ExchangePair[], api?: API): Promise<SyncResult> {
     if (!api) {
       api = await this.exapisService.findExapi(exCode);
     }
@@ -179,7 +188,7 @@ export class ExPriSyncService {
       if (disappeared.length === 0) {
         return;
       }
-      await this.syncOrdersForPairs(ex, disappeared, api);
+      await this.syncNewlyOrdersForPairs(ex, disappeared, api);
     });
 
     return list;

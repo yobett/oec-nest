@@ -41,11 +41,11 @@ export class HbPriSyncService {
 
     const currencyBalances = {};
     for (const item of items) {
-      const {currency, type, balance} = item;
-      let balObj = currencyBalances[currency];
+      const {currency: ccy, type, balance} = item;
+      let balObj = currencyBalances[ccy];
       if (!balObj) {
         balObj = {};
-        currencyBalances[currency] = balObj;
+        currencyBalances[ccy] = balObj;
       }
       balObj[type] = balance;
     }
@@ -53,15 +53,16 @@ export class HbPriSyncService {
     const assets: Asset[] = await this.assetService.findByEx(this.exchCode);
     const assetsMap: Map<string, Asset> = new Map<string, Asset>(assets.map(a => [a.ccy, a]));
 
+    const affected: string[] = [];
     const threshold = Config.EX_DATA_SYNC.UPDATE_ASSET_THRESHOLD;
     const lastSync = new Date();
-    for (const currency in currencyBalances) {
-      const balObj = currencyBalances[currency];
+    for (const ccy in currencyBalances) {
+      const balObj = currencyBalances[ccy];
       const tradeBal = balObj['trade'];
       const frozenBal = balObj['frozen'];
 
-      const currencyCap = currency.toUpperCase();
-      const asset = assetsMap.get(currencyCap);
+      const ccyCap = ccy.toUpperCase();
+      const asset = assetsMap.get(ccyCap);
       const free = +tradeBal;
       const frozen = +frozenBal;
       const holding = free + frozen;
@@ -73,6 +74,7 @@ export class HbPriSyncService {
             || Math.abs(frozen - asset.frozen) > threshold) {
             await this.assetService.update(asset.id, {holding, frozen, lastSync});
             update++;
+            affected.push(ccy);
           } else {
             skip++;
           }
@@ -84,15 +86,17 @@ export class HbPriSyncService {
         }
         const dto = new CreateAssetDto();
         dto.ex = this.exchCode;
-        dto.ccy = currencyCap;
+        dto.ccy = ccy;
         dto.holding = holding;
         dto.frozen = frozen;
         dto.lastSync = lastSync;
         await this.assetService.create(dto);
         create++;
+        affected.push(ccy);
       }
     }
-    return {update, create, skip} as SyncResult;
+
+    return {update, create, skip, payload: affected} as SyncResult;
   }
 
   static setOrderProps(order: SpotOrder | UpdateSpotOrderDto, odr: any): void {

@@ -54,6 +54,14 @@ export class ExPairsService {
     });
   }
 
+  findByExBaseConcerned(ex: string, baseCodes: string[]): Promise<ExPair[]> {
+    return this.pairsRepository.find({
+      [ex + 'Symbol']: Not(IsNull()),
+      baseCcy: In(baseCodes),
+      concerned: true
+    });
+  }
+
   async page(pager: Pager, filter?: ExPairFilter, sorter?: Sorter): Promise<CountList<ExPair>> {
     const where: FindConditions<ExPair> = {};
     if (filter) {

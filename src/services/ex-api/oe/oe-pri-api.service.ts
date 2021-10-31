@@ -128,7 +128,7 @@ export class OePriApiService {
     return body.data;
   }
 
-  async placeOrder(api: API, order: OrderForm): Promise<{ clOrdId: string }> {
+  async placeOrder(api: API, order: OrderForm): Promise<{ ordId: string }> {
     const paramObj: any = {
       instId: order.symbol,
       tdMode: 'cash',
@@ -142,7 +142,7 @@ export class OePriApiService {
       paramObj.sz = '' + order.quoteQuantity;
       paramObj.tgtCcy = 'quote_ccy';
     } else {
-      throw new Error('quantity/quoteOrderQty 须设置其一');
+      throw new Error('请设置数量');
     }
     if (order.type === 'limit') {
       if (order.priceStr) {
@@ -159,7 +159,7 @@ export class OePriApiService {
     if (res.code !== '0') {
       throw new Error(res.data[0].sMsg);
     }
-    return res;
+    return res.data[0];
   }
 
   async cancelOrder(api: API, cancelOrderForm: CancelOrderForm): Promise<any> {
@@ -172,7 +172,7 @@ export class OePriApiService {
     if (res.code !== '0') {
       throw new Error(res.data[0].sMsg);
     }
-    return res;
+    return res.data[0];
   }
 
 }

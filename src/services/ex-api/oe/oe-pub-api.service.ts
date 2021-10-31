@@ -33,7 +33,7 @@ export class OePubApiService {
   async instruments(instId: string): Promise<any> {
     const path = '/api/v5/public/instruments?instType=SPOT&instId=' + instId;
     const body = await this.getData(path);
-    return body.data;
+    return body.data[0];
   }
 
   async tickers(): Promise<any> {
@@ -45,7 +45,7 @@ export class OePubApiService {
   async ticker(instId: string): Promise<any> {
     const path = '/api/v5/market/ticker?instId=' + instId;
     const body = await this.getData(path);
-    return body.data;
+    return body.data[0];
   }
 
 

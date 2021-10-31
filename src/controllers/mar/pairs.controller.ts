@@ -121,10 +121,7 @@ export class PairsController {
       const info = await this.baPubApiService.exchangeInfo(symbol);
       return ValueResult.value(info);
     } else if (ex === Exch.CODE_OE) {
-      let info = await this.oePubApiService.instruments(symbol);
-      if (info && info.length === 1) {
-        info = info[0];
-      }
+      const info = await this.oePubApiService.instruments(symbol);
       return ValueResult.value(info);
     } else if (ex === Exch.CODE_HB) {
       const symbolInfo = await this.hbPubSyncService.getSymbolInfo(symbol);

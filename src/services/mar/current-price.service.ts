@@ -216,12 +216,12 @@ export class CurrentPriceService {
           continue;
         }
         const ticker = await this.oePubApiService.ticker(pair.oeSymbol);
-        if (!ticker || !ticker[0]) {
+        if (!ticker) {
           leftPairs.push(pair);
           continue;
         }
         const key = this.pairPriceKey(pair);
-        const price = +ticker[0].last;
+        const price = +ticker.last;
         prices[key] = {source: Exch.CODE_OE, price};
       }
       return leftPairs;
@@ -282,10 +282,10 @@ export class CurrentPriceService {
   async inquirePrice(ex: string, symbol: string): Promise<number | string> {
     if (ex === Exch.CODE_OE) {
       const ticker = await this.oePubApiService.ticker(symbol);
-      if (!ticker || !ticker[0]) {
+      if (!ticker) {
         return undefined;
       }
-      return ticker[0].last;
+      return ticker.last;
     }
     if (ex === Exch.CODE_BA) {
       const ticker = await this.baPubApiService.tickerPrice(symbol);

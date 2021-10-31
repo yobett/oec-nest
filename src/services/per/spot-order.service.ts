@@ -16,7 +16,7 @@ import { ExPendingOrdersHolder } from '../ex-sync/ex-pending-orders-holder';
 @Injectable()
 export class SpotOrderService {
   constructor(@InjectRepository(SpotOrder) protected orderRepository: Repository<SpotOrder>,
-              protected exPendingOrdersService: ExPendingOrdersHolder
+              protected exPendingOrdersHolder: ExPendingOrdersHolder
   ) {
   }
 
@@ -129,7 +129,7 @@ export class SpotOrderService {
       order.updateTs = order.createTs;
     }
 
-    this.exPendingOrdersService.notifySynchronized(order);
+    this.exPendingOrdersHolder.notifySynchronized(order);
 
     return this.orderRepository.save(order);
   }

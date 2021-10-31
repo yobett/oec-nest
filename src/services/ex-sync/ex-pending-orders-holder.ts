@@ -7,12 +7,12 @@ import { ExchangePair } from '../../models/mar/ex-pair';
 import { Exch } from '../../models/sys/exch';
 import { Config } from '../../common/config';
 
-export interface OrderBasic extends ExchangePair {
+export interface PendingOrder extends ExchangePair {
   side: string;
   orderId: string;
 }
 
-function orderBasicFromOrder(order: SpotOrder): OrderBasic {
+function orderBasicFromOrder(order: SpotOrder): PendingOrder {
   return {
     ex: order.ex,
     symbol: order.pairSymbol,
@@ -26,7 +26,7 @@ function orderBasicFromOrder(order: SpotOrder): OrderBasic {
 @Injectable()
 export class ExPendingOrdersHolder {
 
-  knownPendingOrders: { [ex: string]: OrderBasic[] } = {
+  knownPendingOrders: { [ex: string]: PendingOrder[] } = {
     [Exch.CODE_OE]: [],
     [Exch.CODE_BA]: [],
     [Exch.CODE_HB]: [],
@@ -34,7 +34,7 @@ export class ExPendingOrdersHolder {
 
   lastFetchTimestamps: { [ex: string]: number } = {};
 
-  lastNotification: { ts: number, orderBasic: OrderBasic };
+  lastNotification: { ts: number, orderBasic: PendingOrder };
 
   constructor(private notificationService: NotificationService) {
   }
@@ -56,7 +56,7 @@ export class ExPendingOrdersHolder {
     return (Date.now() - lastFetchTs) >= checkInterval;
   }
 
-  private pushNotification(ob: OrderBasic): void {
+  private pushNotification(ob: PendingOrder): void {
     if (!this.lastNotification) {
       this.doPushNotification(ob);
       return;
@@ -72,7 +72,7 @@ export class ExPendingOrdersHolder {
     }
   }
 
-  private doPushNotification(ob: OrderBasic): void {
+  private doPushNotification(ob: PendingOrder): void {
     const title = `Order Filled`;
     const body = `${ob.ex}, ${ob.side}, ${ob.baseCcy}-${ob.quoteCcy}`;
     this.notificationService.pushNotification(title, body);
@@ -85,7 +85,7 @@ export class ExPendingOrdersHolder {
     }
     process.nextTick(() => {
       const currentObs = this.knownPendingOrders[form.ex];
-      const ob: OrderBasic = {
+      const ob: PendingOrder = {
         ex: form.ex,
         symbol: form.symbol,
         baseCcy: form.baseCcy,
@@ -119,14 +119,14 @@ export class ExPendingOrdersHolder {
     });
   }
 
-  refreshKnownPendingOrders(ex: string, orders: SpotOrder[]): OrderBasic[] {
+  refreshKnownPendingOrders(ex: string, orders: SpotOrder[]): PendingOrder[] {
     const currentObs = this.knownPendingOrders[ex];
     if (!currentObs) {
       console.error('未知交易所：' + ex);
       return;
     }
     this.lastFetchTimestamps[ex] = Date.now();
-    const obs: OrderBasic[] = orders.map(orderBasicFromOrder);
+    const obs: PendingOrder[] = orders.map(orderBasicFromOrder);
     const disappeared = differenceBy(currentObs, obs, ob => `${ob.ex}.${ob.orderId}`);
     for (const ob of disappeared) {
       this.pushNotification(ob);

@@ -12,7 +12,7 @@ import { OePriApiService } from '../ex-api/oe/oe-pri-api.service';
 import { HbPriApiService } from '../ex-api/hb/hb-pri-api.service';
 import { ExPairsService } from '../mar/pairs.service';
 import { ExchangePair } from '../../models/mar/ex-pair';
-import { ExPendingOrdersHolder, OrderBasic } from './ex-pending-orders-holder';
+import { ExPendingOrdersHolder, PendingOrder } from './ex-pending-orders-holder';
 
 @Injectable()
 export class ExPriSyncService {
@@ -123,6 +123,20 @@ export class ExPriSyncService {
   }
 
 
+  async syncOrdersForPairs(exCode: string, exps: ExchangePair[], api?: API): Promise<SyncResult> {
+    if (!api) {
+      api = await this.exapisService.findExapi(exCode);
+    }
+    if (exCode === Exch.CODE_OE) {
+      await this.oePriSyncService.syncAssetAndOrders(api);
+    } else if (exCode === Exch.CODE_BA) {
+      await this.baPriSyncService.syncForPairs(api, exps);
+    } else if (exCode === Exch.CODE_HB) {
+      await this.hbPriSyncService.syncNewlyFilledOrders(api, exps);
+    }
+    throw new Error('未知交易所：' + exCode);
+  }
+
   async getPendingOrdersFor(ex: string): Promise<SpotOrder[]> {
     const api: API = await this.exapisService.findExapi(ex);
     if (!api) {
@@ -161,17 +175,11 @@ export class ExPriSyncService {
     await this.setOrdersBQ(list);
 
     process.nextTick(async () => {
-      const disappeared: OrderBasic[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(ex, list);
+      const disappeared: PendingOrder[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(ex, list);
       if (disappeared.length === 0) {
         return;
       }
-      if (ex === Exch.CODE_OE) {
-        await this.oePriSyncService.syncAssetAndOrders(api);
-      } else if (ex === Exch.CODE_BA) {
-        await this.baPriSyncService.syncForPairs(api, disappeared);
-      } else if (ex === Exch.CODE_HB) {
-        await this.hbPriSyncService.syncNewlyFilledOrders(api, disappeared);
-      }
+      await this.syncOrdersForPairs(ex, disappeared, api);
     });
 
     return list;
@@ -257,21 +265,21 @@ export class ExPriSyncService {
     process.nextTick(async () => {
       if (successFetchedOe) {
         const exList = list.filter(o => o.ex === Exch.CODE_OE);
-        const disappeared: OrderBasic[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(Exch.CODE_OE, exList);
+        const disappeared: PendingOrder[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(Exch.CODE_OE, exList);
         if (disappeared.length > 0) {
           await this.oePriSyncService.syncAssetAndOrders(oeApi);
         }
       }
       if (successFetchedBa) {
         const exList = list.filter(o => o.ex === Exch.CODE_BA);
-        const disappeared: OrderBasic[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(Exch.CODE_BA, exList);
+        const disappeared: PendingOrder[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(Exch.CODE_BA, exList);
         if (disappeared.length > 0) {
           await this.baPriSyncService.syncForPairs(baApi, disappeared);
         }
       }
       if (successFetchedHb) {
         const exList = list.filter(o => o.ex === Exch.CODE_HB);
-        const disappeared: OrderBasic[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(Exch.CODE_HB, exList);
+        const disappeared: PendingOrder[] = this.exPendingOrdersHolder.refreshKnownPendingOrders(Exch.CODE_HB, exList);
         if (disappeared.length > 0) {
           await this.hbPriSyncService.syncNewlyFilledOrders(hbApi, disappeared);
         }

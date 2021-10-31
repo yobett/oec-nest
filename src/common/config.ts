@@ -68,6 +68,7 @@ const OrderIdPrefix = 'oec';
 
 const ClientOrderIdPrefixes = {
   web: OrderIdPrefix + 'm',
+  webBatch: OrderIdPrefix + 'b',
   strategy: OrderIdPrefix + 'a'
 };
 

@@ -29,7 +29,7 @@ export class ExPlaceOrderService {
               private baPubApiService: BaPubApiService,
               private oePubApiService: OePubApiService,
               private hbPubSyncService: HbPubSyncService,
-              private exPendingOrdersService: ExPendingOrdersHolder) {
+              private exPendingOrdersHolder: ExPendingOrdersHolder) {
 
   }
 
@@ -37,6 +37,7 @@ export class ExPlaceOrderService {
     if (/^[^0]\./.test(stepSize)) { // 1.00000000
       return 0;
     }
+    // TODO: 0.00020000
     // 0.00010000
     stepSize = stepSize.substr(2);
     const oi = stepSize.indexOf('1');
@@ -55,6 +56,7 @@ export class ExPlaceOrderService {
 
     let fractionDigits = 2;
     const quantityByQuote = !!form.quoteQuantity;
+    let priceProcessed = false;
 
     try {
       if (ex === Exch.CODE_BA) {
@@ -69,6 +71,17 @@ export class ExPlaceOrderService {
             const fd = this.detectFractionDigits(stepSize);
             if (fd >= 0) {
               fractionDigits = fd;
+            }
+          }
+          if (form.type === 'limit') {
+            const filterPrice = filters.find(f => f.filterType === 'PRICE_FILTER');
+            if (filterPrice) {
+              const tickSize = filterPrice.tickSize;
+              const fd = this.detectFractionDigits(tickSize);
+              if (fd >= 0) {
+                form.price = +form.price.toFixed(fd);
+                priceProcessed = true;
+              }
             }
           }
         }
@@ -104,7 +117,7 @@ export class ExPlaceOrderService {
     } else {
       form.quantity = +toFixedDown(form.quantity, fractionDigits);
     }
-    if (form.price) {
+    if (form.price && !priceProcessed) {
       form.price = +roundNumber(form.price);
     }
 
@@ -121,7 +134,7 @@ export class ExPlaceOrderService {
       throw new Error('未知交易所：' + ex);
     }
     if (orderId) {
-      this.exPendingOrdersService.notifyNewOrderPlaced(orderId, form);
+      this.exPendingOrdersHolder.notifyNewOrderPlaced(orderId, form);
     }
 
     return {orderId};

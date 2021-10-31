@@ -118,8 +118,7 @@ export class SpotOrdersController {
     const ex = form.ex;
     const api: API = await this.exapisService.findExapi(ex);
 
-    const ss = form.side === 'buy' ? 'b' : 's';
-    form.clientOrderId = SpotOrder.genClientOrderId(ss, Config.ClientOrderIdPrefixes.web);
+    form.clientOrderId = SpotOrder.genClientOrderId(form.side, Config.ClientOrderIdPrefixes.web);
 
     const value = await this.exPriApiService.placeOrder(api, form);
 
@@ -152,8 +151,7 @@ export class SpotOrdersController {
     for (const form of forms) {
       const ex = form.ex;
 
-      const ss = form.side === 'buy' ? 'b' : 's';
-      form.clientOrderId = SpotOrder.genClientOrderId(ss, Config.ClientOrderIdPrefixes.web);
+      form.clientOrderId = SpotOrder.genClientOrderId(form.side, Config.ClientOrderIdPrefixes.webBatch);
 
       const result: PlaceOrderResult = {ex, symbol: form.symbol, success: true};
 
@@ -168,12 +166,8 @@ export class SpotOrdersController {
     const successCount = results.filter(r => r.success).length;
     if (successCount > 0) {
       setTimeout(async () => {
-        if (forms.some(form => form.type === 'market')) {
-          this.logger.log('下单后同步订单');
-          await this.exPriSyncService.syncOrdersDefaultFor(ex);
-        }
-        await this.exPriSyncService.syncExAssets(ex, api);
-        this.logger.log('下单后同步资产');
+        this.logger.log('下单后同步资产、订单');
+        await this.exPriSyncService.syncOrdersForPairs(ex, forms, api);
       }, Config.PlaceOrderSyncDelay);
     }
 

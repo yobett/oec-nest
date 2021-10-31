@@ -38,7 +38,7 @@ export class PriSyncTasks {
     CronExpression.EVERY_4_HOURS,
     // '45 * * * *',
     {
-      name: 'syncAssetsAndBuildSnapshots',
+      name: 'sync Assets And Build Snapshots',
       timeZone: Config.Timezone
     })
   async syncAssetsAndBuildSnapshots() {
@@ -93,7 +93,7 @@ export class PriSyncTasks {
         this.logger.log(ex + ': ' + orders.length);
       }
     }
-    this.logger.log('检查挂单');
+    this.logger.log('检查挂单完成');
   }
 
 }

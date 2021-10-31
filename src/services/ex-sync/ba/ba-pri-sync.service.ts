@@ -156,7 +156,6 @@ export class BaPriSyncService {
 
   async syncOrdersForConcernedPairs(api: API): Promise<SyncResult> {
     const syncResult = new SyncResult();
-
     const pairs = await this.pairsService.findByExConcerned(this.exchCode);
     for (const pair of pairs) {
       await this.syncOrders(api, pair.baseCcy, pair.quoteCcy, pair.baSymbol, syncResult);
@@ -181,10 +180,16 @@ export class BaPriSyncService {
     if (assetSyncResult.update === 0 && assetSyncResult.create === 0) {
       return false;
     }
-    for (const exp of exps) {
-      await this.syncOrders(api, exp.baseCcy, exp.quoteCcy, exp.symbol, assetSyncResult);
-    }
+    await this.syncOrdersForPairs(api, exps);
     return true;
+  }
+
+  async syncOrdersForPairs(api: API, exps: ExchangePair[]): Promise<SyncResult> {
+    const syncResult = new SyncResult();
+    for (const exp of exps) {
+      await this.syncOrders(api, exp.baseCcy, exp.quoteCcy, exp.symbol, syncResult);
+    }
+    return syncResult;
   }
 
 }

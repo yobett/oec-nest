@@ -145,8 +145,8 @@ export class BaPriApiService {
     if (orderType === 'market') {
     } else if (orderType === 'limit') {
       paramsWithoutTs += '&timeInForce=GTC';
-      if (order.price) {
-        paramsWithoutTs += '&price=' + order.price;
+      if (order.priceStr) {
+        paramsWithoutTs += '&price=' + order.priceStr;
       } else {
         throw new Error('限价未设置');
       }

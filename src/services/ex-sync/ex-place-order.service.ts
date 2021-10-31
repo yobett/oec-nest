@@ -79,21 +79,31 @@ export class ExPlaceOrderService {
               const tickSize = filterPrice.tickSize;
               const fd = this.detectFractionDigits(tickSize);
               if (fd >= 0) {
-                form.price = +form.price.toFixed(fd);
+                form.priceStr = form.price.toFixed(fd);
                 priceProcessed = true;
               }
             }
           }
         }
       } else if (ex === Exch.CODE_OE) {
-        if (!quantityByQuote) {
+        if (!quantityByQuote || form.type === 'limit') {
           let symbolInfo = await this.oePubApiService.instruments(form.symbol);
           if (symbolInfo && symbolInfo.length === 1) {
             symbolInfo = symbolInfo[0];
-            const lotSz = symbolInfo.lotSz;
-            const fd = this.detectFractionDigits(lotSz);
-            if (fd >= 0) {
-              fractionDigits = fd;
+            if (!quantityByQuote) {
+              const lotSz = symbolInfo.lotSz;
+              const fd = this.detectFractionDigits(lotSz);
+              if (fd >= 0) {
+                fractionDigits = fd;
+              }
+            }
+            if (form.type === 'limit') {
+              const tickSize = symbolInfo.tickSz;
+              const fd = this.detectFractionDigits(tickSize);
+              if (fd >= 0) {
+                form.priceStr = form.price.toFixed(fd);
+                priceProcessed = true;
+              }
             }
           }
         }
@@ -118,7 +128,7 @@ export class ExPlaceOrderService {
       form.quantity = +toFixedDown(form.quantity, fractionDigits);
     }
     if (form.price && !priceProcessed) {
-      form.price = +roundNumber(form.price);
+      form.priceStr = roundNumber(form.price);
     }
 
     let orderId: string;

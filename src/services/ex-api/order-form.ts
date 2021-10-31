@@ -8,6 +8,7 @@ export class OrderForm implements ExchangePair {
   quantity: number;
   quoteQuantity: number;
   price: number; // type=LIMIT
+  priceStr: string;
 
   baseCcy: string;
   quoteCcy: string;

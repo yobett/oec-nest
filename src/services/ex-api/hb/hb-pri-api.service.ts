@@ -210,8 +210,8 @@ export class HbPriApiService {
       paramObj.amount = '' + order.quantity;
     }
     if (order.type === 'limit') {
-      if (order.price) {
-        paramObj.price = '' + order.price;
+      if (order.priceStr) {
+        paramObj.price = order.priceStr;
       } else {
         throw new Error('限价未设置');
       }

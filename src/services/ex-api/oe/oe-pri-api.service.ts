@@ -145,8 +145,8 @@ export class OePriApiService {
       throw new Error('quantity/quoteOrderQty 须设置其一');
     }
     if (order.type === 'limit') {
-      if (order.price) {
-        paramObj.px = '' + order.price;
+      if (order.priceStr) {
+        paramObj.px = order.priceStr;
       } else {
         throw new Error('未设置限价');
       }

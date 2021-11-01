@@ -11,6 +11,7 @@ import {
 import { Pager, Sorter } from '../../models/query-params';
 import { CountList } from '../../models/result';
 import { ExPendingOrdersHolder } from '../ex-sync/ex-pending-orders-holder';
+import { setWildcardCondition } from '../../common/utils';
 
 
 @Injectable()
@@ -63,12 +64,8 @@ export class SpotOrderService {
       if (ex) {
         where.ex = ex;
       }
-      if (baseCcy) {
-        where.baseCcy = baseCcy;
-      }
-      if (quoteCcy) {
-        where.quoteCcy = quoteCcy;
-      }
+      setWildcardCondition(where, 'baseCcy', baseCcy);
+      setWildcardCondition(where, 'quoteCcy', quoteCcy);
       if (pairSymbolLike) {
         where.pairSymbol = Like(`%${pairSymbolLike}%`);
       }

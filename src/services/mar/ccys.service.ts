@@ -5,6 +5,7 @@ import { FindConditions } from 'typeorm/find-options/FindConditions';
 import { Ccy, CcyFilter, CreateCcyDto, UpdateCcyDto } from '../../models/mar/ccy';
 import { Pager, QueryParams, Sorter } from '../../models/query-params';
 import { CountList } from '../../models/result';
+import { setWildcardCondition } from '../../common/utils';
 
 
 @Injectable()
@@ -46,14 +47,11 @@ export class CcysService {
   async page(pager: Pager, filter?: CcyFilter, sorter?: Sorter): Promise<CountList<Ccy>> {
     const where: FindConditions<Ccy> = {};
     if (filter) {
-      if (filter.code) {
-        where.code = filter.code;
-      }
-      if (filter.name) {
-        where.name = filter.name;
-      }
-      if (typeof filter.concerned !== 'undefined') {
-        where.concerned = QueryParams.parseBoolean(filter.concerned);
+      const {code, name, concerned} = filter;
+      setWildcardCondition(where, 'code', code);
+      setWildcardCondition(where, 'name', name);
+      if (typeof concerned !== 'undefined') {
+        where.concerned = QueryParams.parseBoolean(concerned);
       }
     }
     const order = (sorter && sorter.sort) ? {[sorter.sort]: sorter.sortDir} : null;

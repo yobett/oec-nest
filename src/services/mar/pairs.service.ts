@@ -6,6 +6,7 @@ import { groupBy, toPairs } from 'lodash';
 import { CreateExPairDto, ExchangePair, ExPair, ExPairFilter, PairBQ, UpdateExPairDto } from '../../models/mar/ex-pair';
 import { Pager, QueryParams, Sorter } from '../../models/query-params';
 import { CountList } from '../../models/result';
+import { setWildcardCondition } from '../../common/utils';
 
 
 @Injectable()
@@ -69,12 +70,8 @@ export class ExPairsService {
       if (ex) {
         where[ex + 'Symbol'] = Not(IsNull());
       }
-      if (baseCcy) {
-        where.baseCcy = baseCcy;
-      }
-      if (quoteCcy) {
-        where.quoteCcy = quoteCcy;
-      }
+      setWildcardCondition(where, 'baseCcy', baseCcy);
+      setWildcardCondition(where, 'quoteCcy', quoteCcy);
       if (typeof concerned !== 'undefined') {
         where.concerned = QueryParams.parseBoolean(concerned);
       }

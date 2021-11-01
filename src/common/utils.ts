@@ -6,6 +6,8 @@ import { pipeline } from 'stream';
 import * as crypto from 'crypto';
 import { AxiosRequestConfig } from 'axios';
 import { SocksProxyAgent } from 'socks-proxy-agent';
+import { Like } from 'typeorm';
+import { FindConditions } from 'typeorm/find-options/FindConditions';
 
 import { Config } from './config';
 
@@ -166,4 +168,16 @@ export function roundNumber(val: string | number,
     return str.substr(0, fraction + 2);
   }
   return num.toFixed(fraction);
+}
+
+export function setWildcardCondition<T>(where: FindConditions<T>, fieldName: string, value: string) {
+  if (!value) {
+    return;
+  }
+  if (/[*%_]/.test(value)) {
+    const baseCcyLike = value.replace(/\*/g, '%');
+    where[fieldName] = Like(baseCcyLike);
+  } else {
+    where[fieldName] = value;
+  }
 }

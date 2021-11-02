@@ -48,6 +48,9 @@ export class OePubSyncService {
 
     const insts = await this.oePubService.instrumentsAll();
     for (const inst of insts) {
+      if (inst.state !== 'live') {
+        continue;
+      }
       const baseCcy = inst.baseCcy;
       const quoteCcy = inst.quoteCcy;
       const key = `${baseCcy}-${quoteCcy}`;

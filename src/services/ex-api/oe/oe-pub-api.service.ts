@@ -7,6 +7,16 @@ import { download, defaultReqConfig } from '../../../common/utils';
 import { CreateCcyDto } from '../../../models/mar/ccy';
 import { Kline } from '../../../models/mar/kline';
 
+export type OeInstrument = {
+  instId: string,
+  baseCcy: string,
+  quoteCcy: string,
+  state: string,
+  lotSz: string,
+  tickSz: string
+}
+
+
 @Injectable()
 export class OePubApiService {
 
@@ -24,13 +34,13 @@ export class OePubApiService {
     return res.data;
   }
 
-  async instrumentsAll(): Promise<any> {
+  async instrumentsAll(): Promise<OeInstrument[]> {
     const path = '/api/v5/public/instruments?instType=SPOT';
     const body = await this.getData(path);
     return body.data;
   }
 
-  async instruments(instId: string): Promise<any> {
+  async instrument(instId: string): Promise<OeInstrument> {
     const path = '/api/v5/public/instruments?instType=SPOT&instId=' + instId;
     const body = await this.getData(path);
     return body.data[0];

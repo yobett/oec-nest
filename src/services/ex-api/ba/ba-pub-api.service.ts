@@ -4,6 +4,21 @@ import { Config } from '../../../common/config';
 import { Kline } from '../../../models/mar/kline';
 import { defaultReqConfig } from '../../../common/utils';
 
+export type BaExchangeInfo = {
+  symbol: string,
+  status: string,
+  baseAsset: string,
+  quoteAsset: string,
+  filters: {
+    filterType: string
+  }[],
+  permissions: string[]
+}
+
+export type BaExchangeInfoAll = {
+  symbols: BaExchangeInfo[],
+}
+
 @Injectable()
 export class BaPubApiService {
 
@@ -31,13 +46,17 @@ export class BaPubApiService {
     return data;
   }
 
-  async exchangeInfoAll(): Promise<any> {
+  async exchangeInfoAll(): Promise<BaExchangeInfoAll> {
     return this.getData('/api/v3/exchangeInfo');
   }
 
-  async exchangeInfo(symbol: string): Promise<any> {
+  async exchangeInfo(symbol: string): Promise<BaExchangeInfo> {
     const path = '/api/v3/exchangeInfo?symbol=' + symbol;
-    return this.getData(path);
+    const data = await this.getData(path);
+    if (!data.symbols || data.symbols.length === 0) {
+      return null;
+    }
+    return data.symbols[0];
   }
 
   async exchangeInfoSymbols(symbols: string[]): Promise<any> {
@@ -67,7 +86,7 @@ export class BaPubApiService {
     return klines.map((kline: any[]) => {
       kline = kline.map(n => +n);
       const [
-        ts, open, high, low, close, vol, closeTs, volCcy, num
+        ts, open, high, low, close//, vol, closeTs, volCcy, num
       ] = kline;
       return {
         ts, open, high, low, close,

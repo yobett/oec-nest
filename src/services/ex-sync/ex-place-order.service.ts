@@ -6,19 +6,11 @@ import { CancelOrderForm, OrderForm } from '../ex-api/order-form';
 import { API } from '../../models/sys/exapi';
 import { Exch } from '../../models/sys/exch';
 import { roundNumber, toFixedDown } from '../../common/utils';
-import { BaPubApiService } from '../ex-api/ba/ba-pub-api.service';
+import { BaExchangeInfo, BaPubApiService } from '../ex-api/ba/ba-pub-api.service';
 import { HbPubSyncService } from './hb/hb-pub-sync.service';
-import { OePubApiService } from '../ex-api/oe/oe-pub-api.service';
+import { OeInstrument, OePubApiService } from '../ex-api/oe/oe-pub-api.service';
 import { ExPendingOrdersHolder } from './ex-pending-orders-holder';
 
-
-type BaExchangeInfo = {
-  symbols: {
-    filters: {
-      filterType: string
-    }[]
-  }[]
-}
 
 @Injectable()
 export class ExPlaceOrderService {
@@ -61,9 +53,8 @@ export class ExPlaceOrderService {
     try {
       if (ex === Exch.CODE_BA) {
         const symbolInfo: BaExchangeInfo = await this.baPubApiService.exchangeInfo(form.symbol);
-        if (symbolInfo.symbols && symbolInfo.symbols.length > 0) {
-          const params = symbolInfo.symbols[0];
-          const filters: any[] = params.filters;
+        if (symbolInfo) {
+          const filters: any[] = symbolInfo.filters;
           const filterType = quantityByQuote ? 'MARKET_LOT_SIZE' : 'LOT_SIZE';
           const filterLotSize = filters.find(f => f.filterType === filterType);
           if (filterLotSize) {
@@ -87,8 +78,7 @@ export class ExPlaceOrderService {
         }
       } else if (ex === Exch.CODE_OE) {
         if (!quantityByQuote || form.type === 'limit') {
-          let symbolInfo = await this.oePubApiService.instruments(form.symbol);
-          symbolInfo = symbolInfo[0];
+          const symbolInfo: OeInstrument = await this.oePubApiService.instrument(form.symbol);
           if (!quantityByQuote) {
             const lotSz = symbolInfo.lotSz;
             const fd = this.detectFractionDigits(lotSz);

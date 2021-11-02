@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ExPairsService } from '../../mar/pairs.service';
 import { CreateExPairDto, ExPair, UpdateExPairDto } from '../../../models/mar/ex-pair';
 import { Exch } from '../../../models/sys/exch';
-import { BaPubApiService } from '../../ex-api/ba/ba-pub-api.service';
+import { BaExchangeInfoAll, BaPubApiService } from '../../ex-api/ba/ba-pub-api.service';
 import { SyncResult } from '../../../models/sync-result';
 
 @Injectable()
@@ -28,9 +28,12 @@ export class BaPubSyncService {
 
     const newPairsSymbol = new Set<string>();
 
-    const exchangeInfo = await this.baPubApiService.exchangeInfoAll();
+    const exchangeInfo: BaExchangeInfoAll = await this.baPubApiService.exchangeInfoAll();
     for (const symbol of exchangeInfo.symbols) {
       if (symbol.status === 'BREAK') { // BREAK,TRADING
+        continue;
+      }
+      if (symbol.permissions && !symbol.permissions.includes('SPOT')) {
         continue;
       }
       const baseCcy = symbol.baseAsset;

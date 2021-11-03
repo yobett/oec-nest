@@ -4,15 +4,15 @@ OEC 现货交易助手（后端）
 
 这里是OEC现货交易助手的后端部分，采用NestJS开发，数据库为Mysql/Mariadb。前端部分见 https://github.com/yobett/oec-ng 。
 
-系统功能介绍和界面截图，见前端项目。
+系统功能介绍和界面截图，见前端 [Wiki](https://github.com/yobett/oec-ng/wiki)。
 
-使用本系统的好处：
+本系统的好处：
 
 - 从统一界面或入口查看产品信息、实时价格
 - 提供一个整合多平台的资产、订单数据视图
 - 统一的下单界面，快速下单
 - 配置策略，达到交易点即自动下单
-- 把服务器部署在海外，随时随地访问，免翻墙（在大陆访问币安、欧易、火币等交易所需要翻墙）
+- 把服务器部署在海外，随时随地访问，免翻墙（在大陆访问交易所需要翻墙）
 
 本系统通过API来连接[CMC](https://coinmarketcap.com/)和各个交易所，用户需在这些平台上分别创建API，然后配置到本系统。目前支持三个交易所：币安、欧易和火币。
 
@@ -163,7 +163,6 @@ WantedBy=multi-user.target
 
 ```nginx
 location /oec/api/ {
-    proxy_set_header X-HTTPS true;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

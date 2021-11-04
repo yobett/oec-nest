@@ -20,4 +20,16 @@ export class CancelOrderForm {
   ex: string;
   orderId: string;
   symbol?: string;
+  waitSyncAssets?: boolean;
+}
+
+export interface PlaceOrderResult {
+  orderId: string;
+}
+
+export interface BatchPlaceOrderResult extends PlaceOrderResult {
+  ex: string;
+  symbol: string;
+  success: boolean;
+  message?: string;
 }

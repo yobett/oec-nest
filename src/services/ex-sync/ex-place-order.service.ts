@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaPriApiService } from '../ex-api/ba/ba-pri-api.service';
 import { OePriApiService } from '../ex-api/oe/oe-pri-api.service';
 import { HbPriApiService } from '../ex-api/hb/hb-pri-api.service';
-import { CancelOrderForm, OrderForm } from '../ex-api/order-form';
+import { CancelOrderForm, OrderForm, PlaceOrderResult } from '../ex-api/order-form';
 import { API } from '../../models/sys/exapi';
 import { Exch } from '../../models/sys/exch';
 import { roundNumber, toFixedDown } from '../../common/utils';
@@ -40,7 +40,7 @@ export class ExPlaceOrderService {
   }
 
   async placeOrder(api: API,
-                   form: OrderForm): Promise<{ orderId: string }> {
+                   form: OrderForm): Promise<PlaceOrderResult> {
     const ex = form.ex;
     if (!api) {
       throw new Error(`API未配置（${ex}）`);

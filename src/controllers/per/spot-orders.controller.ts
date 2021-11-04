@@ -9,19 +9,12 @@ import { QueryParams } from '../../models/query-params';
 import { QueryFilter } from '../../common/decorators/query-filter.decorator';
 import { ExapisService } from '../../services/sys/exapis.service';
 import { API } from '../../models/sys/exapi';
-import { CancelOrderForm, OrderForm } from '../../services/ex-api/order-form';
+import { BatchPlaceOrderResult, CancelOrderForm, OrderForm, PlaceOrderResult } from '../../services/ex-api/order-form';
 import { ExPriSyncService } from '../../services/ex-sync/ex-pri-sync.service';
 import { ExPlaceOrderService } from '../../services/ex-sync/ex-place-order.service';
 import { Config } from '../../common/config';
 import { ExchangePair } from '../../models/mar/ex-pair';
 
-
-interface PlaceOrderResult {
-  ex: string;
-  symbol: string;
-  success: boolean;
-  message?: string;
-}
 
 @Controller('per/spot-orders')
 @UseGuards(JwtAuthGuard)
@@ -120,7 +113,7 @@ export class SpotOrdersController {
 
     form.clientOrderId = SpotOrder.genClientOrderId(form.side, Config.ClientOrderIdPrefixes.web);
 
-    const value = await this.exPriApiService.placeOrder(api, form);
+    const placeOrderResult: PlaceOrderResult = await this.exPriApiService.placeOrder(api, form);
 
     if (form.type === 'market') {
       setTimeout(() => {
@@ -142,23 +135,26 @@ export class SpotOrdersController {
         });
       }, Config.PlaceOrderSyncDelay);
     }
-    return ValueResult.value(value);
+    return ValueResult.value(placeOrderResult);
   }
 
-  async placeOrdersForEx(ex: string, forms: OrderForm[]): Promise<PlaceOrderResult[]> {
+  async placeOrdersForEx(ex: string, forms: OrderForm[]): Promise<BatchPlaceOrderResult[]> {
     const api: API = await this.exapisService.findExapi(ex);
-    const results: PlaceOrderResult[] = [];
+    const results: BatchPlaceOrderResult[] = [];
     for (const form of forms) {
       const ex = form.ex;
 
       form.clientOrderId = SpotOrder.genClientOrderId(form.side, Config.ClientOrderIdPrefixes.webBatch);
 
-      const result: PlaceOrderResult = {ex, symbol: form.symbol, success: true};
+      const result: BatchPlaceOrderResult = {orderId: '', ex, symbol: form.symbol, success: true};
 
-      await this.exPriApiService.placeOrder(api, form).catch(e => {
+      const placeOrderResult: PlaceOrderResult | void = await this.exPriApiService.placeOrder(api, form).catch(e => {
         result.success = false;
         result.message = e.message;
       });
+      if (placeOrderResult) {
+        result.orderId = placeOrderResult.orderId;
+      }
 
       results.push(result);
     }
@@ -176,14 +172,14 @@ export class SpotOrdersController {
 
 
   @Post('placeMultiOrders')
-  async placeOrders(@Body() forms: OrderForm[]): Promise<ListResult<PlaceOrderResult>> {
+  async placeOrders(@Body() forms: OrderForm[]): Promise<ListResult<BatchPlaceOrderResult>> {
 
     const exFormPairs = toPairs(groupBy(forms, 'ex'));
-    const promises: Promise<PlaceOrderResult[]>[] = exFormPairs
+    const promises: Promise<BatchPlaceOrderResult[]>[] = exFormPairs
       .map(([ex, exForms]) => this.placeOrdersForEx(ex, exForms));
 
-    const exResults: PlaceOrderResult[][] = await Promise.all(promises);
-    const results: PlaceOrderResult[] = flatten(exResults);
+    const exResults: BatchPlaceOrderResult[][] = await Promise.all(promises);
+    const results: BatchPlaceOrderResult[] = flatten(exResults);
 
     return ListResult.list(results);
   }
@@ -195,10 +191,14 @@ export class SpotOrdersController {
     const api: API = await this.exapisService.findExapi(ex);
     const value = await this.exPriApiService.cancelOrder(api, form);
 
-    setTimeout(async () => {
-      this.logger.log('取消订单后同步资产');
+    if (form.waitSyncAssets) {
       await this.exPriSyncService.syncExAssets(ex, api).catch(console.error);
-    }, Config.PlaceOrderSyncDelay);
+    } else {
+      setTimeout(async () => {
+        this.logger.log('取消订单后同步资产');
+        await this.exPriSyncService.syncExAssets(ex, api).catch(console.error);
+      }, 10);
+    }
 
     return ValueResult.value(value);
   }

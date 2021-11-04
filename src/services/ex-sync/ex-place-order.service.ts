@@ -154,6 +154,7 @@ export class ExPlaceOrderService {
     } else {
       throw new Error('未知交易所：' + ex);
     }
+    this.exPendingOrdersHolder.notifyOrderCanceled(form);
     return value;
   }
 

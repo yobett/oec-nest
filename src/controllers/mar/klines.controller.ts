@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Param, Query, UseGuards, } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { Kline } from '../../models/mar/kline';
 import { BaPubApiService } from '../../services/ex-api/ba/ba-pub-api.service';
@@ -10,12 +10,11 @@ import { ListResult } from '../../models/result';
 @Controller('mar/klines')
 @UseGuards(JwtAuthGuard)
 export class KlinesController {
+
   constructor(private baPubApiService: BaPubApiService,
               private oePubApiService: OePubApiService,
               private hbPubApiService: HbPubApiService) {
   }
-
-  private readonly logger = new Logger(KlinesController.name);
 
   @Get(':ex/:symbol/:interval')
   async klines(@Param('ex') ex: string,

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { differenceBy } from 'lodash';
 import { NotificationService } from '../sys/notification.service';
 import { SpotOrder } from '../../models/per/spot-order';
-import { OrderForm } from '../ex-api/order-form';
+import { CancelOrderForm, OrderForm } from '../ex-api/order-form';
 import { ExchangePair } from '../../models/mar/ex-pair';
 import { Exch } from '../../models/sys/exch';
 import { Config } from '../../common/config';
@@ -95,6 +95,16 @@ export class ExPendingOrdersHolder {
       };
       currentObs.push(ob);
     });
+  }
+
+  notifyOrderCanceled(form: CancelOrderForm): void {
+    const {ex, orderId} = form;
+    const currentObs = this.knownPendingOrders[ex];
+    if (!currentObs) {
+      console.error('未知交易所：' + ex);
+      return;
+    }
+    this.knownPendingOrders[ex] = currentObs.filter(ob => !(ob.ex === ex && ob.orderId === orderId));
   }
 
   notifySynchronized(order: SpotOrder): void {

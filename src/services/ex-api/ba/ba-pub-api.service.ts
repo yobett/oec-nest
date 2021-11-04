@@ -1,7 +1,7 @@
 import { HttpService, Injectable } from '@nestjs/common';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Config } from '../../../common/config';
-import { Kline } from '../../../models/mar/kline';
+import { Kline, SymbolKline } from '../../../models/mar/kline';
 import { defaultReqConfig } from '../../../common/utils';
 
 export type BaExchangeInfo = {
@@ -111,6 +111,42 @@ export class BaPubApiService {
       path = path + '?symbol=' + symbol;
     }
     return this.getData(path);
+  }
+
+  async ticker24H(): Promise<SymbolKline[]> {
+    const path = '/api/v3/ticker/24hr';
+    const klines: any[] = await this.getData(path);
+    if (!klines) {
+      throw new Error('未能获取到24小时滚动价格数据');
+    }
+    console.log(`raw count: ${klines.length}`);
+    // const klines = DATA as any[];
+    return klines.map(kline => {
+      const {
+        openTime,
+        symbol,
+        weightedAvgPrice,
+        priceChangePercent,
+        lastPrice,
+        openPrice,
+        highPrice,
+        lowPrice,
+        // volume,
+        // quoteVolume,
+      } = kline;
+      return {
+        ts: openTime,
+        symbol,
+        avgPrice: +weightedAvgPrice,
+        changePercent: +priceChangePercent || 0,
+        open: +openPrice,
+        high: +highPrice,
+        low: +lowPrice,
+        close: +lastPrice,
+        // vol: +volume,
+        // volQuote: +quoteVolume
+      } as SymbolKline;
+    });
   }
 
 }

@@ -81,6 +81,8 @@ const PriceMonitorConfig = {
   PercentDiffThreshold: 2.0
 };
 
+const Rolling24hPriceCacheMinutes = 5;
+
 const PendingOrdersCheckIntervalMinutes = 10;
 
 const StableCoins = ['USDT', 'USDC', 'DAI', 'BUSD'];
@@ -104,5 +106,6 @@ export const Config = {
   PlaceOrderSyncDelay,
   StableCoins,
   PriceMonitorConfig,
+  Rolling24hPriceCacheMinutes,
   PendingOrdersCheckIntervalMinutes
 }

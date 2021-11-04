@@ -27,6 +27,7 @@ import { StrategyHistoryController } from './controllers/str/strategy-history.co
 import { Config } from './common/config';
 import { NotificationsController } from './controllers/sys/notifications.controller';
 import { UserProfileController } from './controllers/sys/user-profile.controller';
+import { RollingPricesController } from './controllers/mar/rolling-prices.controller';
 
 @Module({
   imports: [
@@ -42,7 +43,7 @@ import { UserProfileController } from './controllers/sys/user-profile.controller
     AppController, SessionController, UserProfileController, UsersController,
     ExchsController, NotificationsController,
     CcysController, PairsController, ExapisController, JobsController,
-    KlinesController, CcyQuotesController,
+    KlinesController, CcyQuotesController, RollingPricesController,
     AssetsController, AssetSnapshotController, SpotOrdersController, LastTransController,
     DataSyncPubController, DataSyncPriController,
     StrategyController, StrategyHistoryController

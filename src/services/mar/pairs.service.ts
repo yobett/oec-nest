@@ -44,6 +44,12 @@ export class ExPairsService {
     return this.pairsRepository.find();
   }
 
+  findByEx(ex: string): Promise<ExPair[]> {
+    return this.pairsRepository.find({
+      [ex + 'Symbol']: Not(IsNull())
+    });
+  }
+
   findConcerned(): Promise<ExPair[]> {
     return this.pairsRepository.find({concerned: true});
   }
@@ -52,6 +58,17 @@ export class ExPairsService {
     return this.pairsRepository.find({
       [ex + 'Symbol']: Not(IsNull()),
       concerned: true
+    });
+  }
+
+  findByConcernedSymbols(ex: string, symbols: string[]): Promise<ExPair[]> {
+    const symbolField = (ex + 'Symbol') as keyof ExPair;
+    return this.pairsRepository.find({
+      where: {
+        [symbolField]: In(symbols),
+        concerned: true
+      },
+      select: [symbolField]
     });
   }
 

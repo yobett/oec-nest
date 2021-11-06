@@ -1,17 +1,32 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { Strategy, StrategyFilter } from '../../models/str/strategy';
 import { HistoryStrategiesService } from './history-strategies.service';
 import { StrategyHistory } from '../../models/str/strategy-history';
+import { RunningStrategiesHolder } from './running-strategies-holder';
 
 @Injectable()
 export class StrategiesService {
   private readonly logger = new Logger(StrategiesService.name);
 
+  runningStrategiesHolder: RunningStrategiesHolder = new RunningStrategiesHolder();
+
   constructor(@InjectRepository(Strategy) protected repository: Repository<Strategy>,
               private historyStrategiesService: HistoryStrategiesService
   ) {
+    this.loadRunningStrategies().catch(console.error);
+  }
+
+  async loadRunningStrategies(): Promise<void> {
+    this.logger.log(`reload running strategies ...`);
+    const strategies = await this.findAllToExecute();
+    this.runningStrategiesHolder.refresh(strategies)
+  }
+
+  getRunningStrategies(type: string = null): Strategy[] {
+    return this.runningStrategiesHolder.strategies.filter(s => !type || s.type === type);
   }
 
   async completeStrategy(strategy: Strategy): Promise<void> {
@@ -29,14 +44,13 @@ export class StrategiesService {
     if (!strategy.autoStartNext) {
       return null;
     }
-    if (strategy.type !== Strategy.TypeLB && strategy.type !== Strategy.TypeHS) {
-      return null;
-    }
+    // if (strategy.type !== Strategy.TypeLB && strategy.type !== Strategy.TypeHS) {
+    //   return null;
+    // }
     const {
       ex, symbol, baseCcy, quoteCcy, applyOrder,
       basePoint, expectingPercent, drawbackPercent,
       tradeVolPercent, tradeVolByValue, tradeVol,
-      // intenseWatchPercent, mediumWatchPercent,
     } = strategy;
 
     const nextType = strategy.type === Strategy.TypeLB ? Strategy.TypeHS : Strategy.TypeLB;
@@ -45,7 +59,6 @@ export class StrategiesService {
       ex, symbol, baseCcy, quoteCcy, applyOrder,
       basePoint, expectingPercent, drawbackPercent,
       tradeVolPercent, tradeVolByValue, tradeVol,
-      // intenseWatchPercent, mediumWatchPercent,
     });
 
     next.basePoint = currentPrice;
@@ -80,26 +93,38 @@ export class StrategiesService {
     return this.repository.findOne(id);
   }
 
-  findAll(filter?: StrategyFilter): Promise<Strategy[]> {
+  async findAll(filter?: StrategyFilter): Promise<Strategy[]> {
+    let allRunning = true;
     const where: any = {};
     if (filter) {
       if (filter.type) {
         where.type = filter.type;
+        allRunning = false;
       }
       if (filter.ex) {
         where.ex = filter.ex;
+        allRunning = false;
       }
       if (filter.side) {
         where.side = filter.side;
+        allRunning = false;
       }
       if (filter.status) {
         where.status = filter.status;
+        if (filter.status !== 'started') {
+          allRunning = false;
+        }
       }
     }
-    return this.repository.find({
+    const strategies = await this.repository.find({
       where,
       order: {applyOrder: 'ASC'}
     });
+    if (allRunning) {
+      const running = strategies.filter(s => s.status === 'started');
+      this.runningStrategiesHolder.refresh(running);
+    }
+    return strategies;
   }
 
   findByExWithClientOrderId(ex: string): Promise<Strategy[]> {
@@ -142,7 +167,9 @@ export class StrategiesService {
   }
 
   async create(dto: Strategy): Promise<Strategy> {
-    return this.repository.save(dto);
+    const strategy = await this.repository.save(dto);
+    this.runningStrategiesHolder.add(strategy);
+    return strategy;
   }
 
   async update(id: number, dto: Strategy): Promise<void> {
@@ -157,10 +184,13 @@ export class StrategiesService {
     delete dto.type;
     delete dto.watchDirection;
     await this.repository.update(id, dto);
+    this.runningStrategiesHolder.update(id, dto);
   }
 
   async saveMany(dtos: Strategy[]): Promise<Strategy[]> {
-    return this.repository.save(dtos);
+    const strategies = await this.repository.save(dtos);
+    await this.loadRunningStrategies();
+    return strategies;
   }
 
   async setStatusStart(id: number): Promise<void> {
@@ -179,6 +209,8 @@ export class StrategiesService {
     }
 
     await this.repository.update(id, {status: 'started'});
+    st.status = 'started';
+    this.runningStrategiesHolder.add(st);
   }
 
   async setStatusPause(id: number): Promise<void> {
@@ -190,6 +222,7 @@ export class StrategiesService {
       throw new Error('策略已完成');
     }
     await this.repository.update(id, {status: 'paused'});
+    this.runningStrategiesHolder.remove(id);
   }
 
   async clearPeak(id: number): Promise<void> {
@@ -197,13 +230,15 @@ export class StrategiesService {
     if (!st) {
       throw new Error('策略不存在');
     }
-    await this.repository.update(id, {
+    const updater: QueryDeepPartialEntity<Strategy> = {
       peak: null,
       peakTime: null,
       valley: null,
       valleyTime: null,
       beyondExpect: false
-    });
+    };
+    await this.repository.update(id, updater);
+    this.runningStrategiesHolder.update(id, updater);
   }
 
 
@@ -213,6 +248,11 @@ export class StrategiesService {
       sql += ` and type='${type}'`;
     }
     await this.repository.query(sql);
+    if (!type) {
+      this.runningStrategiesHolder.refresh([]);
+    } else {
+      this.runningStrategiesHolder.removeType(type);
+    }
   }
 
   async resumeAll(type: string = null): Promise<void> {
@@ -221,9 +261,11 @@ export class StrategiesService {
       sql += ` and type='${type}'`;
     }
     await this.repository.query(sql);
+    await this.loadRunningStrategies();
   }
 
   async remove(id: number): Promise<void> {
     await this.repository.delete(id);
+    this.runningStrategiesHolder.remove(id);
   }
 }

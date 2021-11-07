@@ -23,8 +23,8 @@ class Watching {
 const DEBUG = false;
 
 @Injectable()
-export class OePubWsService {
-  private readonly logger = new Logger(OePubWsService.name);
+export class BaPubWsService {
+  private readonly logger = new Logger(BaPubWsService.name);
 
   private ws: WebSocket;
 
@@ -34,6 +34,8 @@ export class OePubWsService {
 
   private watchingMap: Map<string, Watching> = new Map<string, Watching>();
 
+  private messageId = 1;
+
   constructor() {
     setInterval(this.checkIdle.bind(this), 2 * 1000);
   }
@@ -41,13 +43,13 @@ export class OePubWsService {
   private checkIdle(): void {
     const ts = Date.now();
     if (this.wsReady) {
-      const mills = ts - this.wsLastTouchTs;
-      if (mills > 25 * 1000) {
-        this.ws.send('ping');
-        if (DEBUG) {
-          this.logger.log('sent ping ...');
-        }
-      }
+      // const mills = ts - this.wsLastTouchTs;
+      // if (mills > 25 * 1000) {
+      //   this.ws.send('ping');
+      //   if (DEBUG) {
+      //     this.logger.log('sent ping ...');
+      //   }
+      // }
     }
     if (DEBUG) {
       this.logger.log(`watching symbols: ${this.watchingMap.size}`);
@@ -86,9 +88,9 @@ export class OePubWsService {
   }
 
   setupWS(): void {
-    const wsBase = Config.OE_API.WS_PUBLIC;
+    const wsBase = Config.BA_API.WS_PUBLIC;
     const wsOptions: ClientOptions = defaultWsOptions();
-    this.ws = new WebSocket(wsBase, wsOptions);
+    this.ws = new WebSocket(`${wsBase}/ws/a`, wsOptions);
 
     this.ws.on('open', () => this.wsOpen());
 
@@ -98,6 +100,7 @@ export class OePubWsService {
       const now = new Date();
       this.wsLastTouchTs = now.getTime();
       const json = String(message);
+      this.logger.log(json);
       if (json === 'ping') {
         if (DEBUG) {
           this.logger.log('got ping.');
@@ -120,42 +123,23 @@ export class OePubWsService {
         }
         return;
       }
-      if (obj.event) {
-        if (DEBUG) {
-          this.logger.log(obj.event);
-        }
-        if (obj.event === 'subscribe') {
-          if (obj.arg && obj.arg.channel === 'tickers') {
-            const symbol = obj.arg.instId;
-            const watching = this.watchingMap.get(symbol);
-            if (watching) {
-              watching.state = 'watching';
-              watching.lastTouchTs = now.getTime();
-            } else {
-              if (DEBUG) {
-                this.logger.log('-');
-              }
-            }
+      if (obj.id) {
+        // if (DEBUG) {
+        //   this.logger.log(obj.id);
+        // }
+      } else if (obj.e === '24hrMiniTicker') {
+        const symbol = obj.s;
+        const watching = this.watchingMap.get(symbol);
+        if (watching) {
+          const ticker: WsTicker = {ts: +obj.E, symbol, price: +obj.c};
+          if (DEBUG) {
+            this.logger.log(ticker);
           }
-        } else if (obj.event === 'error') {
-          this.logger.error(obj.msg);
-        }
-      } else if (obj.arg && obj.data) {
-        const raw = obj.data[0];
-        if (obj.arg.channel === 'tickers') {
-          const symbol = raw.instId;
-          const watching = this.watchingMap.get(symbol);
-          if (watching) {
-            const ticker: WsTicker = {ts: +raw.ts, symbol, price: +raw.last};
-            if (DEBUG) {
-              this.logger.log(ticker);
-            }
-            watching.state = 'watching';
-            const tickerSubject = watching.tickerSubject;
-            if (tickerSubject.observers.length > 0) {
-              watching.lastTouchTs = now.getTime();
-              tickerSubject.next(ticker);
-            }
+          watching.state = 'watching';
+          const tickerSubject = watching.tickerSubject;
+          if (tickerSubject.observers.length > 0) {
+            watching.lastTouchTs = now.getTime();
+            tickerSubject.next(ticker);
           }
         }
       }
@@ -185,11 +169,11 @@ export class OePubWsService {
   }
 
   private subscribe(symbols: string[]): void {
-    this.wsSymbolOp(symbols, 'subscribe', 'tickers');
+    this.wsSymbolOp(symbols, 'SUBSCRIBE', 'miniTicker');
   }
 
   private unsubscribe(symbols: string[]): void {
-    this.wsSymbolOp(symbols, 'unsubscribe', 'tickers');
+    this.wsSymbolOp(symbols, 'UNSUBSCRIBE', 'miniTicker');
   }
 
   private wsSymbolOp(symbols: string[], op: string, channel: string): void {
@@ -197,14 +181,15 @@ export class OePubWsService {
       return;
     }
     const req = {
-      op,
-      args: symbols.map(symbol => ({
-          channel,
-          instId: symbol
-        })
-      )
+      method: op,
+      params: symbols.map(symbol => `${symbol.toLowerCase()}@${channel}`),
+      id: this.messageId++
     };
-    this.ws.send(JSON.stringify(req));
+    const reqStr = JSON.stringify(req);
+    if (DEBUG) {
+      this.logger.log(reqStr);
+    }
+    this.ws.send(reqStr);
   }
 
   watch(symbol: string): Observable<WsTicker> {
@@ -229,22 +214,22 @@ export class OePubWsService {
 
 
 function test() {
-  const service = new OePubWsService();
+  const service = new BaPubWsService();
   // service.setupWS();
-  const s11: Subscription = service.watch('KISHU-USDT').subscribe((e) => console.log('11 ', e));
-  console.log('----- 11 + KISHU');
+  const s11: Subscription = service.watch('BTCUSDT').subscribe((e) => console.log('11 ', e));
+  console.log('----- 11 + BTC');
   setTimeout(() => {
-    const s21: Subscription = service.watch('KISHU-USDT').subscribe((e) => console.log('21 ', e));
-    console.log('----- 21 + KISHU');
-    const s22: Subscription = service.watch('ETH-USDT').subscribe((e) => console.log('22 ', e));
+    const s21: Subscription = service.watch('BTCUSDT').subscribe((e) => console.log('21 ', e));
+    console.log('----- 21 + BTC');
+    const s22: Subscription = service.watch('ETHUSDT').subscribe((e) => console.log('22 ', e));
     console.log('----- 22 + ETH');
     setTimeout(() => {
       s21.unsubscribe();
-      console.log('----- 11 - KISHU');
+      console.log('----- 11 - BTC');
     }, 3000);
     setTimeout(() => {
       s11.unsubscribe();
-      console.log('----- 21 - KISHU');
+      console.log('----- 21 - BTC');
       s22.unsubscribe();
       console.log('----- 22 - ETH');
     }, 6000);

@@ -10,6 +10,7 @@ import { Like } from 'typeorm';
 import { FindConditions } from 'typeorm/find-options/FindConditions';
 
 import { Config } from './config';
+import { ClientOptions } from 'ws';
 
 
 const streamPipeline = promisify(pipeline);
@@ -60,6 +61,16 @@ export function defaultReqConfig(): AxiosRequestConfig {
     requestConfig.httpAgent = agent;
   }
   return requestConfig;
+}
+
+export function defaultWsOptions(): ClientOptions {
+  const hrc = Config.HttpRequestConfig;
+  const wsOptions: ClientOptions = {};
+  if (hrc.proxyEnabled) {
+    const proxy = hrc.proxy;
+    wsOptions.agent = new SocksProxyAgent(`${proxy.protocol}://${proxy.host}:${proxy.port}`);
+  }
+  return wsOptions;
 }
 
 export function toFixedDown(val: string | number,

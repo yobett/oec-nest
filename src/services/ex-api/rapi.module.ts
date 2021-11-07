@@ -7,9 +7,10 @@ import { BaPriApiService } from './ba/ba-pri-api.service';
 import { HbPubApiService } from './hb/hb-pub-api.service';
 import { HbPriApiService } from './hb/hb-pri-api.service';
 import { CmcApiService } from './cmc/cmc-api.service';
+import { OePubWsService } from './oe/oe-pub-ws.service';
 
 const services: Provider[] = [
-  OePubApiService, OePriApiService,
+  OePubApiService, OePriApiService, OePubWsService,
   BaPubApiService, BaPriApiService,
   HbPubApiService, HbPriApiService,
   CmcApiService

@@ -21,7 +21,7 @@ const OE_API = {
 
 const BA_API = {
   BASE_URL: 'https://api.binance.com', // -or- api1/api2/api3
-  WS_PUBLIC: '',
+  WS_PUBLIC: 'wss://stream.binance.com:9443',
   WS_PRIVATE: ''
 };
 
@@ -29,7 +29,7 @@ const HB_API_DOMAIN = 'api.huobi.pro';  // -or- api-aws.huobi.pro
 const HB_API = {
   DOMAIN: HB_API_DOMAIN,
   BASE_URL: 'https://' + HB_API_DOMAIN,
-  WS_PUBLIC: '',
+  WS_PUBLIC: `wss://${HB_API_DOMAIN}/ws`,
   WS_PRIVATE: ''
 };
 

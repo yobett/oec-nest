@@ -95,70 +95,8 @@ export class OePubWsService {
     this.ws.on('close', () => this.wsClose());
 
     this.ws.on('message', (message) => {
-      const now = new Date();
-      this.wsLastTouchTs = now.getTime();
       const json = String(message);
-      if (json === 'ping') {
-        if (DEBUG) {
-          this.logger.log('got ping.');
-        }
-        this.ws.send('pong');
-        return;
-      } else if (json === 'pong') {
-        if (DEBUG) {
-          this.logger.log('got pong.');
-        }
-        return;
-      }
-      let obj;
-      try {
-        obj = JSON.parse(json);
-      } catch (e) {
-        console.error(e);
-        if (DEBUG) {
-          this.logger.log(json);
-        }
-        return;
-      }
-      if (obj.event) {
-        if (DEBUG) {
-          this.logger.log(obj.event);
-        }
-        if (obj.event === 'subscribe') {
-          if (obj.arg && obj.arg.channel === 'tickers') {
-            const symbol = obj.arg.instId;
-            const watching = this.watchingMap.get(symbol);
-            if (watching) {
-              watching.state = 'watching';
-              watching.lastTouchTs = now.getTime();
-            } else {
-              if (DEBUG) {
-                this.logger.log('-');
-              }
-            }
-          }
-        } else if (obj.event === 'error') {
-          this.logger.error(obj.msg);
-        }
-      } else if (obj.arg && obj.data) {
-        const raw = obj.data[0];
-        if (obj.arg.channel === 'tickers') {
-          const symbol = raw.instId;
-          const watching = this.watchingMap.get(symbol);
-          if (watching) {
-            const ticker: WsTicker = {ts: +raw.ts, symbol, price: +raw.last};
-            if (DEBUG) {
-              this.logger.log(ticker);
-            }
-            watching.state = 'watching';
-            const tickerSubject = watching.tickerSubject;
-            if (tickerSubject.observers.length > 0) {
-              watching.lastTouchTs = now.getTime();
-              tickerSubject.next(ticker);
-            }
-          }
-        }
-      }
+      this.wsMessage(json);
     });
 
     this.ws.on('error', console.error);
@@ -176,6 +114,72 @@ export class OePubWsService {
       }
     }
     this.subscribe(toSubscribe);
+  }
+
+  private wsMessage(json: string): void {
+    const now = new Date();
+    this.wsLastTouchTs = now.getTime();
+    if (json === 'ping') {
+      if (DEBUG) {
+        this.logger.log('got ping.');
+      }
+      this.ws.send('pong');
+      return;
+    } else if (json === 'pong') {
+      if (DEBUG) {
+        this.logger.log('got pong.');
+      }
+      return;
+    }
+    let obj;
+    try {
+      obj = JSON.parse(json);
+    } catch (e) {
+      console.error(e);
+      if (DEBUG) {
+        this.logger.log(json);
+      }
+      return;
+    }
+    if (obj.event) {
+      if (DEBUG) {
+        this.logger.log(obj.event);
+      }
+      if (obj.event === 'subscribe') {
+        if (obj.arg && obj.arg.channel === 'tickers') {
+          const symbol = obj.arg.instId;
+          const watching = this.watchingMap.get(symbol);
+          if (watching) {
+            watching.state = 'watching';
+            watching.lastTouchTs = now.getTime();
+          } else {
+            if (DEBUG) {
+              this.logger.log('-');
+            }
+          }
+        }
+      } else if (obj.event === 'error') {
+        this.logger.error(obj.msg);
+      }
+    } else if (obj.arg && obj.data) {
+      const raw = obj.data[0];
+      if (obj.arg.channel === 'tickers') {
+        const symbol = raw.instId;
+        const watching = this.watchingMap.get(symbol);
+        if (watching) {
+          const ticker: WsTicker = {ts: +raw.ts, symbol, price: +raw.last};
+          if (DEBUG) {
+            this.logger.log(ticker);
+          }
+          watching.state = 'watching';
+          const tickerSubject = watching.tickerSubject;
+          if (tickerSubject.observers.length > 0) {
+            watching.lastTouchTs = now.getTime();
+            tickerSubject.next(ticker);
+          }
+        }
+      }
+    }
   }
 
   private wsClose(): void {

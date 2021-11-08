@@ -1,5 +1,6 @@
+import * as zlib from 'zlib';
 import { Injectable, Logger } from '@nestjs/common';
-import { ClientOptions, WebSocket } from 'ws';
+import { ClientOptions, RawData, WebSocket } from 'ws';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { Config } from '../../../common/config';
 import { defaultWsOptions } from '../../../common/utils';
@@ -23,8 +24,8 @@ class Watching {
 const DEBUG = false;
 
 @Injectable()
-export class BaPubWsService {
-  private readonly logger = new Logger(BaPubWsService.name);
+export class HbPubWsService {
+  private readonly logger = new Logger(HbPubWsService.name);
 
   private ws: WebSocket;
 
@@ -88,17 +89,30 @@ export class BaPubWsService {
   }
 
   setupWS(): void {
-    const wsBase = Config.BA_API.WS_PUBLIC;
+    const wsBase = Config.HB_API.WS_PUBLIC;
     const wsOptions: ClientOptions = defaultWsOptions();
-    this.ws = new WebSocket(`${wsBase}/ws/a`, wsOptions);
+    this.ws = new WebSocket(wsBase, wsOptions);
 
     this.ws.on('open', () => this.wsOpen());
 
     this.ws.on('close', () => this.wsClose());
 
-    this.ws.on('message', (message) => {
-      const json = String(message);
-      this.wsMessage(json);
+    this.ws.on('message', (raw: RawData) => {
+      let buffer;
+      if (raw instanceof Buffer || raw instanceof ArrayBuffer) {
+        buffer = raw;
+      } else {
+        // Buffer[]
+        buffer = Buffer.concat(raw);
+      }
+      zlib.gunzip(buffer, ((error, result) => {
+        if (error) {
+          console.error(error);
+          return;
+        }
+        const json = String(result);
+        this.wsMessage(json);
+      }));
     });
 
     this.ws.on('error', console.error);
@@ -119,9 +133,9 @@ export class BaPubWsService {
   }
 
   private wsMessage(json: string): void {
+    this.logger.log(json);
     const now = new Date();
     this.wsLastTouchTs = now.getTime();
-    // this.logger.log(json);
     if (json === 'ping') {
       if (DEBUG) {
         this.logger.log('got ping.');
@@ -144,17 +158,20 @@ export class BaPubWsService {
       }
       return;
     }
-    if (obj.id) {
-      // if (DEBUG) {
-      //   this.logger.log(obj.id);
-      // }
+    if (typeof obj.ping === 'number') {
+      const pingNum = obj.ping;
+      this.logger.log('got ping: ' + pingNum);
+      const pong = {pong: pingNum};
+      this.ws.send(JSON.stringify(pong));
       return;
     }
-    if (obj.e === '24hrMiniTicker') {
-      const symbol = obj.s;
+    if (obj.ch && /^market\.[a-zA-Z]+\.ticker$/.test(obj.ch)) {
+      const channel = obj.ch as string;
+      const symbol = channel.substring('market.'.length, channel.length - '.ticker'.length);
       const watching = this.watchingMap.get(symbol);
       if (watching) {
-        const ticker: WsTicker = {ts: +obj.E, symbol, price: +obj.c};
+        const tick = obj.tick;
+        const ticker: WsTicker = {ts: +obj.ts, symbol, price: +tick.lastPrice};
         if (DEBUG) {
           this.logger.log(ticker);
         }
@@ -175,27 +192,28 @@ export class BaPubWsService {
   }
 
   private subscribe(symbols: string[]): void {
-    this.wsSymbolOp(symbols, 'SUBSCRIBE', 'miniTicker');
+    this.wsSymbolOp(symbols, 'sub');
   }
 
   private unsubscribe(symbols: string[]): void {
-    this.wsSymbolOp(symbols, 'UNSUBSCRIBE', 'miniTicker');
+    this.wsSymbolOp(symbols, 'unsub');
   }
 
-  private wsSymbolOp(symbols: string[], op: string, channel: string): void {
+  private wsSymbolOp(symbols: string[], op: string): void {
     if (symbols.length === 0) {
       return;
     }
-    const req = {
-      method: op,
-      params: symbols.map(symbol => `${symbol.toLowerCase()}@${channel}`),
-      id: this.messageId++
-    };
-    const reqStr = JSON.stringify(req);
-    if (DEBUG) {
-      this.logger.log(reqStr);
+    for (const symbol of symbols) {
+      const req = {
+        [op]: `market.${symbol}.ticker`,
+        id: this.messageId++
+      };
+      const reqStr = JSON.stringify(req);
+      if (DEBUG) {
+        this.logger.log(reqStr);
+      }
+      this.ws.send(reqStr);
     }
-    this.ws.send(reqStr);
   }
 
   watch(symbol: string): Observable<WsTicker> {
@@ -220,14 +238,14 @@ export class BaPubWsService {
 
 
 function test() {
-  const service = new BaPubWsService();
+  const service = new HbPubWsService();
   // service.setupWS();
-  const s11: Subscription = service.watch('BTCUSDT').subscribe((e) => console.log('11 ', e));
+  const s11: Subscription = service.watch('btcusdt').subscribe((e) => console.log('11 ', e));
   console.log('----- 11 + BTC');
   setTimeout(() => {
-    const s21: Subscription = service.watch('BTCUSDT').subscribe((e) => console.log('21 ', e));
+    const s21: Subscription = service.watch('btcusdt').subscribe((e) => console.log('21 ', e));
     console.log('----- 21 + BTC');
-    const s22: Subscription = service.watch('ETHUSDT').subscribe((e) => console.log('22 ', e));
+    const s22: Subscription = service.watch('ethusdt').subscribe((e) => console.log('22 ', e));
     console.log('----- 22 + ETH');
     setTimeout(() => {
       s21.unsubscribe();

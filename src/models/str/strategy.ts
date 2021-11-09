@@ -8,6 +8,10 @@ export class Strategy extends Model {
   static TypeLS = 'LS';
   static TypeHB = 'HB';
 
+  static ExecutorPr = 'pr';
+  static ExecutorWs = 'ws';
+
+
   constructor(type: string) {
     super();
     this.type = type;
@@ -101,6 +105,9 @@ export class Strategy extends Model {
   watchLevel: 'loose' | 'medium' | 'intense';
   @Column()
   status: 'initial' | 'started' | 'paused' | 'placed' | 'completed';
+
+  @Column({nullable: true})
+  executor: string;
 
   static setExpectingPoint(strategy: Strategy): void {
     const sign = strategy.watchDirection === 'up' ? 1 : -1;

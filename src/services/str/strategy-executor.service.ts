@@ -1,60 +1,34 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { StrategiesService } from './strategies.service';
 import { Strategy } from '../../models/str/strategy';
 import { Config } from '../../common/config';
 import { CurrentPriceService } from '../mar/current-price.service';
-import { OrderForm } from '../ex-api/order-form';
 import { ExPlaceOrderService } from '../ex-sync/ex-place-order.service';
 import { AssetService } from '../per/asset.service';
-import { API } from '../../models/sys/exapi';
 import { ExapisService } from '../sys/exapis.service';
 import { ExPriSyncService } from '../ex-sync/ex-pri-sync.service';
-import { ExchangePair } from '../../models/mar/ex-pair';
-import { SpotOrder } from '../../models/per/spot-order';
 import { NotificationService } from '../sys/notification.service';
 import { PriceMonitorService, PricesSnapshot } from '../mar/price-monitor.service';
+import { StrategyExecutionBasicOptions, StrategyExecutorHelper } from './strategy-executor-helper';
 
-export interface StrategyExecutionOptions {
+export interface StrategyExecutionOptions extends StrategyExecutionBasicOptions {
   type?: string;
-  skipCheckStatus?: boolean;
-  skipPlaceOrder?: boolean;
   ignoreInterval?: boolean;
-  skipSyncExAssets?: boolean;
-  skipSyncAfterPlacedOrder?: boolean;
-  apis?: Map<string, API>;
-  context?: 'web' | 'job';
 }
 
 @Injectable()
-export class StrategyExecutorService {
-  private readonly logger = new Logger(StrategyExecutorService.name);
+export class StrategyExecutorService extends StrategyExecutorHelper {
 
-  constructor(private strategiesService: StrategiesService,
-              private currentPriceService: CurrentPriceService,
-              private exPriApiService: ExPlaceOrderService,
-              private assetService: AssetService,
-              private exapisService: ExapisService,
-              private exPriSyncService: ExPriSyncService,
-              private notificationService: NotificationService,
-              private priceMonitorService: PriceMonitorService
+  constructor(protected strategiesService: StrategiesService,
+              protected currentPriceService: CurrentPriceService,
+              protected exPriApiService: ExPlaceOrderService,
+              protected assetService: AssetService,
+              protected exapisService: ExapisService,
+              protected exPriSyncService: ExPriSyncService,
+              protected notificationService: NotificationService,
+              protected priceMonitorService: PriceMonitorService
   ) {
-  }
-
-  private checkStrategy(strategy: Strategy): void {
-    const {
-      basePoint, expectingPercent,
-      tradeVol, tradeVolPercent, tradeVolByValue
-    } = strategy;
-
-    if ((tradeVolByValue && !tradeVol) || (!tradeVolByValue && !tradeVolPercent)) {
-      throw new Error('交易量未设置');
-    }
-    if (!basePoint) {
-      throw new Error('基点未设置');
-    }
-    if (!expectingPercent) {
-      throw new Error('期望未设置');
-    }
+    super(strategiesService, exPriApiService, assetService, exapisService, exPriSyncService, notificationService);
   }
 
   private checkWatchInterval(strategy: Strategy): boolean {
@@ -144,118 +118,6 @@ export class StrategyExecutorService {
     }
   }
 
-  private checkTradingPointLB(strategy: Strategy,
-                              currentPrice: number,
-                              options: StrategyExecutionOptions): boolean {
-    if (strategy.side !== 'buy') {
-      throw new Error('side must be `buy` for strategy type=LB');
-    }
-    const {basePoint, expectingPoint, valley, drawbackPercent} = strategy;
-    if (!drawbackPercent) {
-      throw new Error('最大回落未设置');
-    }
-
-    this.setWatchLevelForWatchDirectionDown(strategy, currentPrice, options);
-
-    if (valley > expectingPoint) {
-      this.logger.log('not reach Expecting Value.');
-      strategy.tradingPoint = expectingPoint + expectingPoint * drawbackPercent / 100.0;
-      return false;
-    }
-
-    strategy.tradingPoint = valley + valley * drawbackPercent / 100.0;
-    strategy.beyondExpect = true;
-    let toTrade = true;
-
-    if (currentPrice < strategy.tradingPoint) {
-      this.logger.log('below Trading Point.');
-      toTrade = false;
-    } else {
-      const delta = currentPrice - strategy.tradingPoint;
-      const executorConfig = Config.StrategyExecutorConfig;
-      const tolerantDelta = basePoint * executorConfig.TradingPriceDeltaPercent / 100.0;
-      if (delta > tolerantDelta) {
-        this.logger.warn('risen too much.');
-        toTrade = false;
-      }
-    }
-
-    return toTrade;
-  }
-
-  private checkTradingPointHS(strategy: Strategy,
-                              currentPrice: number,
-                              options: StrategyExecutionOptions): boolean {
-    if (strategy.side !== 'sell') {
-      throw new Error('side must be `sell` for strategy type=HS');
-    }
-
-    this.setWatchLevelForWatchDirectionUp(strategy, currentPrice, options);
-
-    const {basePoint, expectingPoint, peak, drawbackPercent} = strategy;
-    if (!drawbackPercent) {
-      throw new Error('最大回落未设置');
-    }
-
-    if (peak < expectingPoint) {
-      this.logger.log('not reach Expecting Value.');
-      strategy.tradingPoint = expectingPoint - expectingPoint * drawbackPercent / 100.0;
-      return false;
-    }
-
-    strategy.tradingPoint = peak - peak * drawbackPercent / 100.0;
-    strategy.beyondExpect = true;
-    let toTrade = true;
-
-    if (currentPrice > strategy.tradingPoint) {
-      this.logger.log('above Trading Point.');
-      toTrade = false;
-    } else {
-      const delta = strategy.tradingPoint - currentPrice;
-      const executorConfig = Config.StrategyExecutorConfig;
-      const tolerantDelta = basePoint * executorConfig.TradingPriceDeltaPercent / 100.0;
-      if (delta > tolerantDelta) {
-        this.logger.warn('dropped too much.');
-        toTrade = false;
-      }
-    }
-
-    return toTrade;
-  }
-
-  private checkTradingPointLS(strategy: Strategy,
-                              currentPrice: number,
-                              options: StrategyExecutionOptions): boolean {
-    if (strategy.side !== 'sell') {
-      throw new Error('side must be `sell` for strategy type=LS');
-    }
-
-    this.setWatchLevelForWatchDirectionDown(strategy, currentPrice, options);
-
-    strategy.tradingPoint = strategy.expectingPoint;
-    const toTrade = currentPrice <= strategy.tradingPoint;
-    if (!toTrade) {
-      this.logger.log(`currentPrice (${currentPrice}) > expectingPoint (${strategy.tradingPoint})`)
-    }
-    return toTrade;
-  }
-
-  private checkTradingPointHB(strategy: Strategy,
-                              currentPrice: number,
-                              options: StrategyExecutionOptions): boolean {
-    if (strategy.side !== 'buy') {
-      throw new Error('side must be `sell` for strategy type=HB');
-    }
-
-    this.setWatchLevelForWatchDirectionUp(strategy, currentPrice, options);
-
-    strategy.tradingPoint = strategy.expectingPoint;
-    const toTrade = currentPrice >= strategy.tradingPoint;
-    if (!toTrade) {
-      this.logger.log(`currentPrice (${currentPrice}) < tradingPoint (${strategy.tradingPoint})`)
-    }
-    return toTrade;
-  }
 
   async executeStrategyDirectly(id: number,
                                 options: StrategyExecutionOptions = {}): Promise<Strategy> {
@@ -271,14 +133,10 @@ export class StrategyExecutorService {
   async executeStrategy(strategy: Strategy,
                         options: StrategyExecutionOptions = {}): Promise<any> {
 
-    if (!options.skipCheckStatus) {
-      const status = strategy.status;
-      if (status !== 'started') {
-        throw new Error('`status`(' + status + ') is not `started`.');
-      }
+    const errMsg = this.checkStrategy(strategy);
+    if (errMsg) {
+      throw new Error(errMsg);
     }
-
-    this.checkStrategy(strategy);
 
     if (!options.ignoreInterval) {
       const exe = this.checkWatchInterval(strategy);
@@ -294,44 +152,18 @@ export class StrategyExecutorService {
       throw new Error('未能获取当前价格');
     }
 
-    const {type, peak, valley} = strategy;
+    this.setPeakValley(strategy, currentPrice);
 
-    strategy.lastCheckAt = new Date();
-    strategy.lastCheckPrice = currentPrice;
+    const type = strategy.type;
 
-    if (!peak || peak < currentPrice) {
-      strategy.peak = currentPrice;
-      strategy.peakTime = strategy.lastCheckAt;
+    if (type === Strategy.TypeLB || type === Strategy.TypeLS) {
+      this.setWatchLevelForWatchDirectionDown(strategy, currentPrice, options);
     }
-    if (!valley || valley > currentPrice) {
-      strategy.valley = currentPrice;
-      strategy.valleyTime = strategy.lastCheckAt;
+    if (type === Strategy.TypeHB || type === Strategy.TypeHS) {
+      this.setWatchLevelForWatchDirectionUp(strategy, currentPrice, options);
     }
 
-    // 止损/跟涨
-    if (type === Strategy.TypeLS || type === Strategy.TypeHB) {
-      if (strategy.updateBasePoint) {
-        if ((type === Strategy.TypeLS && currentPrice > strategy.basePoint)
-          || (type === Strategy.TypeHB && currentPrice < strategy.basePoint)) {
-          this.logger.log(`BasePoint: ${strategy.basePoint} -> ${currentPrice}`);
-          strategy.basePoint = currentPrice;
-          Strategy.setExpectingPoint(strategy);
-        }
-      }
-    }
-
-    let toTrade = true;
-    if (type === Strategy.TypeLB) {
-      toTrade = this.checkTradingPointLB(strategy, currentPrice, options);
-    } else if (type === Strategy.TypeHS) {
-      toTrade = this.checkTradingPointHS(strategy, currentPrice, options);
-    } else if (type === Strategy.TypeLS) {
-      toTrade = this.checkTradingPointLS(strategy, currentPrice, options);
-    } else if (type === Strategy.TypeHB) {
-      toTrade = this.checkTradingPointHB(strategy, currentPrice, options);
-    } else {
-      throw new Error('未知策略类型：' + type);
-    }
+    const toTrade = this.checkToTrade(strategy, currentPrice);
 
     await this.strategiesService.update(strategy.id, strategy);
 
@@ -348,128 +180,13 @@ export class StrategyExecutorService {
         await this.exPriSyncService.syncExAssets(strategy.ex);
       }
 
-
       await this.doTrade(strategy, currentPrice, options);
 
       await this.doAfterTrade(strategy, currentPrice, options);
     }
 
-    return;
   }
 
-  private async doTrade(strategy: Strategy,
-                        currentPrice: number,
-                        options: StrategyExecutionOptions) {
-    const ex = strategy.ex;
-    const isSell = strategy.side === 'sell';
-
-    let volume; // sell: base; buy: quote
-    const assetCcy = isSell ? strategy.baseCcy : strategy.quoteCcy;
-    const asset = await this.assetService.findAsset(ex, assetCcy);
-    if (!asset) {
-      throw new Error(`资产未找到：${ex}.${assetCcy}`);
-    }
-
-    const available = asset.holding - asset.frozen;
-    if (strategy.tradeVolByValue) {
-      if (available < strategy.tradeVol) {
-        throw new Error('可用余额不足');
-      }
-      volume = strategy.tradeVol;
-    } else {
-      const executorConfig = Config.StrategyExecutorConfig;
-      if (Config.StableCoins.includes(assetCcy)) {
-        if (available < executorConfig.MinAssetUsdtAvailable) {
-          throw new Error('可用余额不足');
-        }
-      } else {
-        if (isSell && Config.StableCoins.includes(strategy.quoteCcy)) {
-          const volumeUsdt = available * currentPrice;
-          if (volumeUsdt < executorConfig.MinAssetUsdtAvailable) {
-            throw new Error('可用余额不足');
-          }
-        } else if (available < executorConfig.MinAssetAvailable) {
-          throw new Error('可用余额不足');
-        }
-      }
-      volume = available * strategy.tradeVolPercent / 100.0;
-    }
-
-    const orderForm = new OrderForm();
-    orderForm.ex = strategy.ex;
-    orderForm.side = strategy.side;
-    orderForm.type = 'market';
-    orderForm.symbol = strategy.symbol;
-    orderForm.baseCcy = strategy.baseCcy;
-    orderForm.quoteCcy = strategy.quoteCcy;
-    if (isSell) {
-      orderForm.quantity = volume;
-    } else {
-      orderForm.quoteQuantity = volume;
-    }
-    orderForm.clientOrderId = SpotOrder.genClientOrderId(strategy.side, Config.ClientOrderIdPrefixes.strategy);
-
-    let api: API = options.apis ? options.apis.get(strategy.ex) : null;
-    if (!api) {
-      api = await this.exapisService.findExapi(ex);
-    }
-    if (!api) {
-      throw new Error(`API未配置（${ex}）`);
-    }
-
-    let placeOrderResult;
-    try {
-      placeOrderResult = await this.exPriApiService.placeOrder(api, orderForm);
-    } catch (e) {
-      const formStr = JSON.stringify(orderForm);
-      this.logger.error(formStr);
-      e.notificationTitle = '下单失败';
-      e.extraMessage = 'Form: ' + formStr;
-      throw e;
-    }
-
-    const formStr = JSON.stringify(orderForm);
-    this.logger.log(formStr);
-    this.logger.log(placeOrderResult);
-    this.notificationService.pushNotification('已下单',
-      `strategy: #${strategy.id},\nForm: ${formStr}`);
-
-    strategy.status = 'placed';
-    strategy.orderPlacedAt = new Date();
-    strategy.clientOrderId = orderForm.clientOrderId;
-    await this.strategiesService.update(strategy.id, strategy);
-
-    asset.frozen -= volume;
-    await this.assetService.update(asset.id, {holding: asset.holding, frozen: asset.frozen});
-  }
-
-  private async doAfterTrade(strategy: Strategy,
-                             currentPrice: number,
-                             options: StrategyExecutionOptions = {}) {
-    const nextStrategy = await this.strategiesService.tryInstantiateNext(strategy, currentPrice);
-    if (nextStrategy) {
-      this.logger.log('Next Strategy: ' + nextStrategy.id);
-    }
-
-    if (!options.skipSyncAfterPlacedOrder) {
-      setTimeout(() => {
-        const exp: ExchangePair = {
-          ex: strategy.ex,
-          baseCcy: strategy.baseCcy,
-          quoteCcy: strategy.quoteCcy,
-          symbol: strategy.symbol
-        };
-        this.exPriSyncService.syncAfterPlacedOrder(exp)
-          .then(updated => {
-            this.logger.log('syncAfterPlacedOrder, updated: ' + updated);
-          });
-      }, Config.PlaceOrderSyncDelay);
-    }
-  }
-
-  private notificationStrategyStr(s: Strategy): string {
-    return `#${s.id}, ${s.ex}, ${s.type}, ${s.side}, ${s.baseCcy}-${s.quoteCcy}`;
-  }
 
   private notifyWatchLevelChange(s: Strategy, level: string): void {
     this.notificationService.pushNotification(`关注级别`,
@@ -486,26 +203,28 @@ export class StrategyExecutorService {
   }
 
   async executeAll(options: StrategyExecutionOptions = {}): Promise<void> {
-    if (!options.apis) {
-      options.apis = await this.exapisService.findExapis();
-    }
-    const apis = options.apis;
-    const strategies = await this.strategiesService.findAllToExecute(options.type);
-    const strategies2: Strategy[] = [];
-    for (const strategy of strategies) {
-      if (!apis.get(strategy.ex)) {
-        this.logger.log(`no api (${strategy.ex}), skip: ` + strategy.id);
-        continue;
-      }
-      strategies2.push(strategy);
-    }
+    // if (!options.apis) {
+    //   options.apis = await this.exapisService.findExapis();
+    // }
+    // const apis = options.apis;
+    // const strategies = await this.strategiesService.findAllToExecute(options.type);
+    const strategies = this.strategiesService.getRunningStrategies(options.type)
+      .filter(s => !s.executor || s.executor === Strategy.ExecutorPr);
+    // const strategies2: Strategy[] = [];
+    // for (const strategy of strategies) {
+    //   if (!apis.get(strategy.ex)) {
+    //     this.logger.log(`no api (${strategy.ex}), skip: ` + strategy.id);
+    //     continue;
+    //   }
+    //   strategies2.push(strategy);
+    // }
 
-    this.logger.log('strategy size: ' + strategies2.length);
-    if (strategies2.length === 0) {
+    if (strategies.length === 0) {
       return;
     }
+    this.logger.log('strategy size: ' + strategies.length);
 
-    for (const strategy of strategies2) {
+    for (const strategy of strategies) {
       try {
         await this.executeStrategy(strategy, options);
       } catch (e) {

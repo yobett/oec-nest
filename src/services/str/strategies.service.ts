@@ -2,10 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { UpdateResult } from 'typeorm/query-builder/result/UpdateResult';
+import { Observable } from 'rxjs';
 import { Strategy, StrategyFilter } from '../../models/str/strategy';
 import { HistoryStrategiesService } from './history-strategies.service';
 import { StrategyHistory } from '../../models/str/strategy-history';
-import { RunningStrategiesHolder } from './running-strategies-holder';
+import { RunningStrategiesHolder, StrategyChange } from './running-strategies-holder';
 
 @Injectable()
 export class StrategiesService {
@@ -16,7 +18,9 @@ export class StrategiesService {
   constructor(@InjectRepository(Strategy) protected repository: Repository<Strategy>,
               private historyStrategiesService: HistoryStrategiesService
   ) {
-    this.loadRunningStrategies().catch(console.error);
+    setTimeout(() => {
+      this.loadRunningStrategies().catch(console.error);
+    }, 200);
   }
 
   async loadRunningStrategies(): Promise<void> {
@@ -27,6 +31,10 @@ export class StrategiesService {
 
   getRunningStrategies(type: string = null): Strategy[] {
     return this.runningStrategiesHolder.strategies.filter(s => !type || s.type === type);
+  }
+
+  watchRunningStrategiesChange(): Observable<StrategyChange> {
+    return this.runningStrategiesHolder.changeSubject;
   }
 
   async completeStrategy(strategy: Strategy): Promise<void> {
@@ -44,21 +52,32 @@ export class StrategiesService {
     if (!strategy.autoStartNext) {
       return null;
     }
-    // if (strategy.type !== Strategy.TypeLB && strategy.type !== Strategy.TypeHS) {
-    //   return null;
-    // }
     const {
-      ex, symbol, baseCcy, quoteCcy, applyOrder,
+      type, ex, symbol, baseCcy, quoteCcy, applyOrder,
       basePoint, expectingPercent, drawbackPercent,
-      tradeVolPercent, tradeVolByValue, tradeVol,
+      tradeVolPercent, tradeVolByValue, tradeVol, executor
     } = strategy;
 
-    const nextType = strategy.type === Strategy.TypeLB ? Strategy.TypeHS : Strategy.TypeLB;
+    let nextType = type;
+    switch (type) {
+      case Strategy.TypeLB:
+        nextType = Strategy.TypeHS;
+        break;
+      case Strategy.TypeHS:
+        nextType = Strategy.TypeLB;
+        break;
+      case Strategy.TypeLS:
+        nextType = Strategy.TypeHB;
+        break;
+      case Strategy.TypeHB:
+        nextType = Strategy.TypeLS;
+        break;
+    }
     const next = new Strategy(nextType);
     Object.assign(next, {
       ex, symbol, baseCcy, quoteCcy, applyOrder,
       basePoint, expectingPercent, drawbackPercent,
-      tradeVolPercent, tradeVolByValue, tradeVol,
+      tradeVolPercent, tradeVolByValue, tradeVol, executor
     });
 
     next.basePoint = currentPrice;
@@ -183,8 +202,11 @@ export class StrategiesService {
     delete dto.side;
     delete dto.type;
     delete dto.watchDirection;
-    await this.repository.update(id, dto);
-    this.runningStrategiesHolder.update(id, dto);
+    const updateResult: UpdateResult = await this.repository.update(id, dto);
+    // this.logger.log(`update affected: ${updateResult.affected}`);
+    if (updateResult.affected && updateResult.affected > 0) {
+      this.runningStrategiesHolder.update(id, dto);
+    }
   }
 
   async saveMany(dtos: Strategy[]): Promise<Strategy[]> {
@@ -204,8 +226,8 @@ export class StrategiesService {
     if ((st.tradeVolByValue && !st.tradeVol) || (!st.tradeVolByValue && !st.tradeVolPercent)) {
       throw new Error('未设置交易量');
     }
-    if (!st.basePoint || !st.expectingPercent /*|| !st.intenseWatchPercent || !st.mediumWatchPercent*/) {
-      throw new Error('部分属性未设置');
+    if (!st.basePoint || !st.expectingPercent) {
+      throw new Error('未设置基点/期望');
     }
 
     await this.repository.update(id, {status: 'started'});

@@ -15,7 +15,6 @@ import { NotificationService } from '../sys/notification.service';
 
 export interface StrategyExecutionBasicOptions {
   skipPlaceOrder?: boolean;
-  skipSyncExAssets?: boolean;
   skipSyncAfterPlacedOrder?: boolean;
   apis?: Map<string, API>;
   context?: 'web' | 'job';
@@ -278,7 +277,7 @@ export class StrategyExecutorHelper {
     strategy.clientOrderId = form.clientOrderId;
     await this.strategiesService.update(strategy.id, strategy);
 
-    asset.frozen -= volume;
+    asset.frozen += volume;
     await this.assetService.update(asset.id, {holding: asset.holding, frozen: asset.frozen});
   }
 

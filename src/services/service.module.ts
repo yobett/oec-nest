@@ -46,6 +46,7 @@ import { PriceMonitorService } from './mar/price-monitor.service';
 import { ArbitrageService } from './mar/arbitrage.service';
 import { ExPendingOrdersHolder } from './ex-sync/ex-pending-orders-holder';
 import { RollingPriceService } from './mar/rolling-price.service';
+import { StrategyExecutorWsService } from './str/strategy-executor-ws.service';
 
 const services: Provider[] = [
   UsersService, ExchsService, ExapisService, NotificationService,
@@ -58,7 +59,7 @@ const services: Provider[] = [
   HbPubSyncService, HbPriSyncService,
   CmcSyncService, ExPriSyncService, ExPubSyncService,
   ExPlaceOrderService, ExPendingOrdersHolder, RollingPriceService,
-  StrategiesService, StrategyExecutorService, HistoryStrategiesService
+  StrategiesService, StrategyExecutorService, HistoryStrategiesService, StrategyExecutorWsService
 ];
 
 @Module({

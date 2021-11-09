@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { StrategiesService } from './strategies.service';
 import { Strategy } from '../../models/str/strategy';
 import { Config } from '../../common/config';
@@ -14,10 +14,12 @@ import { StrategyExecutionBasicOptions, StrategyExecutorHelper } from './strateg
 export interface StrategyExecutionOptions extends StrategyExecutionBasicOptions {
   type?: string;
   ignoreInterval?: boolean;
+  skipSyncExAssets?: boolean;
 }
 
 @Injectable()
 export class StrategyExecutorService extends StrategyExecutorHelper {
+  protected readonly logger = new Logger(StrategyExecutorService.name);
 
   constructor(protected strategiesService: StrategiesService,
               protected currentPriceService: CurrentPriceService,

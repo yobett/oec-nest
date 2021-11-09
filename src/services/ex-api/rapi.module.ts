@@ -10,11 +10,12 @@ import { CmcApiService } from './cmc/cmc-api.service';
 import { OePubWsService } from './oe/oe-pub-ws.service';
 import { BaPubWsService } from './ba/ba-pub-ws.service';
 import { WsTickerService } from './ws-ticker.service';
+import { HbPubWsService } from './hb/hb-pub-ws.service';
 
 const services: Provider[] = [
   OePubApiService, OePriApiService, OePubWsService,
   BaPubApiService, BaPriApiService, BaPubWsService,
-  HbPubApiService, HbPriApiService,
+  HbPubApiService, HbPriApiService, HbPubWsService,
   CmcApiService, WsTickerService
 ];
 

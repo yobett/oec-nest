@@ -22,7 +22,7 @@ export class Watching {
 export abstract class PubWsBaseService {
   protected readonly logger = new Logger(PubWsBaseService.name);
 
-  debug = false;
+  protected debug = false;
 
   protected ws: WebSocket;
 
@@ -138,7 +138,9 @@ export abstract class PubWsBaseService {
   }
 
   protected wsMessage(json: string): void {
-    // this.logger.log(json);
+    if (this.debug) {
+      this.logger.log(json);
+    }
     this.wsLastTouchTs = Date.now();
     if (json === 'ping') {
       if (this.debug) {
@@ -189,6 +191,13 @@ export abstract class PubWsBaseService {
 
   protected abstract unsubscribe(symbols: string[]): void;
 
+  protected sendRequest(req: any) {
+    const reqStr = JSON.stringify(req);
+    if (this.debug) {
+      this.logger.log(reqStr);
+    }
+    this.ws.send(reqStr);
+  }
 
   watch(symbol: string): Observable<WsTicker> {
     if (!this.ws) {

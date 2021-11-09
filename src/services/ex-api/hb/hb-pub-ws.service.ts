@@ -76,11 +76,7 @@ export class HbPubWsService extends PubWsBaseService {
         [op]: `market.${symbol}.ticker`,
         id: this.messageId++
       };
-      const reqStr = JSON.stringify(req);
-      if (this.debug) {
-        this.logger.log(reqStr);
-      }
-      this.ws.send(reqStr);
+      this.sendRequest(req);
     }
   }
 

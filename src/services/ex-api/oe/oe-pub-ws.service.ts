@@ -80,11 +80,7 @@ export class OePubWsService extends PubWsBaseService {
         })
       )
     };
-    const reqStr = JSON.stringify(req);
-    if (this.debug) {
-      this.logger.log(reqStr);
-    }
-    this.ws.send(reqStr);
+    this.sendRequest(req);
   }
 
 }

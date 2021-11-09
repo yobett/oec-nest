@@ -51,10 +51,10 @@ export class WsTickerService {
                        symbol: string,
                        prefix: string,
                        rateMills = 1000): Subscription => {
-      const s11: Subscription = this.watch(ex, symbol, rateMills)
+      const sub: Subscription = this.watch(ex, symbol, rateMills)
         .subscribe((e) => console.log(prefix, new Date(), e));
       console.log('----- ' + prefix + ' + ' + symbol);
-      return s11;
+      return sub;
     }
 
     const s11: Subscription = testWatch(ex, symbol1, '11');
@@ -86,4 +86,4 @@ function test() {
   service.test('ba');
 }
 
-test();
+// test();

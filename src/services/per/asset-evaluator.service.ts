@@ -48,6 +48,10 @@ export class AssetEvaluatorService {
 
     for (const asset of assets2) {
       const cq = quoteRes[asset.ccy];
+      if (!cq) {
+        console.error(`no quote for: ${asset.ccy}`);
+        continue;
+      }
       const quote: Quote = cq.quote[convert];
       if (!quote || !quote.price) {
         continue;
@@ -105,6 +109,10 @@ export class AssetEvaluatorService {
 
     for (const asset of assets) {
       const cq = quoteRes[asset.ccy];
+      if (!cq) {
+        console.error(`no quote for: ${asset.ccy}`);
+        continue;
+      }
       const quote: Quote = cq.quote[convert];
       if (!quote) {
         continue;

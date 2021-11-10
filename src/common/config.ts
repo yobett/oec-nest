@@ -44,10 +44,10 @@ const EX_DATA_SYNC = {
 const Minute = 60 * 1000;
 
 const StrategyWatch = {
-  CheckIntervalMinutes: 3,
+  CheckIntervalMinutes: 1,
   StrategyWatchInterval: {
-    loose: 32 * Minute,
-    medium: 8 * Minute,
+    loose: 16 * Minute,
+    medium: 4 * Minute,
     intense: 2 * Minute,
   },
   WatchIntervalPercentFromExpect: {
@@ -62,6 +62,11 @@ const StrategyExecutorConfig = {
   TradingPriceDeltaPercent: 1,
   MinAssetUsdtAvailable: 5,
   MinAssetAvailable: 1e-2
+}
+
+const StrategyExecutorWsConfig = {
+  TickerRateSeconds: 5,
+  StrategySaveRateSeconds: 60
 }
 
 const OrderIdPrefix = 'oec';
@@ -102,6 +107,7 @@ export const Config = {
   EX_DATA_SYNC,
   StrategyWatch,
   StrategyExecutorConfig,
+  StrategyExecutorWsConfig,
   ClientOrderIdPrefixes,
   PlaceOrderSyncDelay,
   StableCoins,

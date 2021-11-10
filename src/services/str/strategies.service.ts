@@ -205,7 +205,8 @@ export class StrategiesService {
     const updateResult: UpdateResult = await this.repository.update(id, dto);
     // this.logger.log(`update affected: ${updateResult.affected}`);
     if (updateResult.affected && updateResult.affected > 0) {
-      this.runningStrategiesHolder.update(id, dto);
+      const strategy = await this.repository.findOne(id);
+      this.runningStrategiesHolder.update(id, strategy);
     }
   }
 
@@ -260,7 +261,7 @@ export class StrategiesService {
       beyondExpect: false
     };
     await this.repository.update(id, updater);
-    this.runningStrategiesHolder.update(id, updater);
+    this.runningStrategiesHolder.update(id, Object.assign(st, updater));
   }
 
 

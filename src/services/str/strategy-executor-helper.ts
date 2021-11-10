@@ -50,10 +50,12 @@ export class StrategyExecutorHelper {
     if ((tradeVolByValue && !tradeVol) || (!tradeVolByValue && !tradeVolPercent)) {
       return '交易量未设置';
     }
-    if (type == Strategy.TypeLB || type == Strategy.TypeHB) {
+    if (type == Strategy.TypeLB || type == Strategy.TypeHS) {
       if (!drawbackPercent) {
         return '最大回落未设置';
       }
+    }
+    if (type == Strategy.TypeLB || type == Strategy.TypeHB) {
       if (side !== 'buy') {
         return `side must be 'buy' for strategy type=${type}`;
       }

@@ -12,11 +12,11 @@ import { WsTickerService } from '../ex-api/ws-ticker.service';
 import { WsTicker } from '../ex-api/ws-ticker';
 import { StrategyExecutorHelper } from './strategy-executor-helper';
 import { StrategyChange } from './running-strategies-holder';
+import { Config } from '../../common/config';
 
 
 class RunningStrategy {
   strategy: Strategy;
-  state: string;
   tickerSubscription?: Subscription;
   lastSaveTs?: number;
 
@@ -28,9 +28,6 @@ class RunningStrategy {
 @Injectable()
 export class StrategyExecutorWsService extends StrategyExecutorHelper {
   protected readonly logger = new Logger(StrategyExecutorWsService.name);
-
-  private tickerRateSeconds = 5;
-  private strategySaveRateSeconds = 60;
 
   private runningMap: Map<number, RunningStrategy> = new Map<number, RunningStrategy>();
 
@@ -74,7 +71,14 @@ export class StrategyExecutorWsService extends StrategyExecutorHelper {
     }
     if (change.type === 'update') {
       const curr = this.runningMap.get(strategy.id);
-      if (!curr) {
+      if (curr) {
+        const errMsg = this.checkStrategy(strategy);
+        if (errMsg) {
+          this.logger.error(errMsg);
+          return;
+        }
+        curr.strategy = strategy;
+      } else {
         this.runStrategy(strategy);
       }
     }
@@ -133,10 +137,9 @@ export class StrategyExecutorWsService extends StrategyExecutorHelper {
     this.logger.log('runStrategy, ' + this.notificationStrategyStr(strategy));
     rs = new RunningStrategy(strategy);
     const {ex, symbol} = strategy;
-    rs.tickerSubscription = this.wsTickerService.watch(ex, symbol, this.tickerRateSeconds * 1000)
-      .subscribe(async (ticker: WsTicker) => {
-        return this.onTicker(rs, ticker);
-      });
+    const rate = Config.StrategyExecutorWsConfig.TickerRateSeconds * 1000;
+    rs.tickerSubscription = this.wsTickerService.watch(ex, symbol, rate)
+      .subscribe(async (ticker: WsTicker) => this.onTicker(rs, ticker));
     this.runningMap.set(strategy.id, rs);
   }
 
@@ -173,7 +176,8 @@ export class StrategyExecutorWsService extends StrategyExecutorHelper {
 
     const toTrade = this.checkToTrade(strategy, currentPrice);
 
-    if (!rs.lastSaveTs || (Date.now() - rs.lastSaveTs) > this.strategySaveRateSeconds * 1000) {
+    const saveRate = Config.StrategyExecutorWsConfig.StrategySaveRateSeconds * 1000;
+    if (!rs.lastSaveTs || (Date.now() - rs.lastSaveTs) > saveRate) {
       await this.strategiesService.update(strategy.id, strategy);
       rs.lastSaveTs = Date.now();
     }

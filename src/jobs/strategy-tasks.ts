@@ -15,11 +15,11 @@ export class StrategyTasks {
   }
 
 
-  @Cron(`0 */${StrategyWatch} * * * *`, {name: 'Check All Strategies'})
+  @Cron(`30 */${StrategyWatch} * * * *`, {name: 'Check All Strategies'})
   async checkAllStrategies() {
-    this.logger.log('检查并执行策略 ...');
+    // this.logger.log('检查并执行策略 ...');
     await this.strategyExecutorService.executeAll({context: 'job'});
-    this.logger.log('检查并执行策略完成');
+    // this.logger.log('检查并执行策略完成');
   }
 
 }

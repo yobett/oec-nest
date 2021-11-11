@@ -74,7 +74,7 @@ export class HbPriSyncService {
             || Math.abs(frozen - asset.frozen) > threshold) {
             await this.assetService.update(asset.id, {holding, frozen, lastSync});
             update++;
-            affected.push(ccy);
+            affected.push(ccyCap);
           } else {
             skip++;
           }
@@ -86,13 +86,13 @@ export class HbPriSyncService {
         }
         const dto = new CreateAssetDto();
         dto.ex = this.exchCode;
-        dto.ccy = ccy;
+        dto.ccy = ccyCap;
         dto.holding = holding;
         dto.frozen = frozen;
         dto.lastSync = lastSync;
         await this.assetService.create(dto);
         create++;
-        affected.push(ccy);
+        affected.push(ccyCap);
       }
     }
 

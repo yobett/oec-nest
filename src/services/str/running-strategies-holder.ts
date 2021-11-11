@@ -22,24 +22,21 @@ export class RunningStrategiesHolder {
     this.changeSubject.next({type: 'full'});
   }
 
-  add(strategy: Strategy): void {
+  addOrUpdate(strategy: Strategy): void {
+    const strategy0 = this.strategyMap.get(strategy.id);
     if (strategy.status !== 'started') {
+      if (strategy0) {
+        this.remove(strategy.id);
+      }
       return;
     }
-    this.strategies.push(strategy);
-    this.strategyMap.set(strategy.id, strategy);
-    this.changeSubject.next({type: 'add', strategy});
-  }
-
-  update(id: number, dto: any): void {
-    if (dto.status !== 'started') {
-      this.remove(id);
-      return;
-    }
-    const strategy = this.strategyMap.get(id);
-    if (strategy) {
-      Object.assign(strategy, dto);
-      this.changeSubject.next({type: 'update', strategy});
+    if (strategy0) {
+      Object.assign(strategy0, strategy);
+      this.changeSubject.next({type: 'update', strategy: strategy0});
+    } else {
+      this.strategies.push(strategy);
+      this.strategyMap.set(strategy.id, strategy);
+      this.changeSubject.next({type: 'add', strategy});
     }
   }
 

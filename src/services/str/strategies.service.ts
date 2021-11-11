@@ -187,11 +187,11 @@ export class StrategiesService {
 
   async create(dto: Strategy): Promise<Strategy> {
     const strategy = await this.repository.save(dto);
-    this.runningStrategiesHolder.add(strategy);
+    this.runningStrategiesHolder.addOrUpdate(strategy);
     return strategy;
   }
 
-  async update(id: number, dto: Strategy): Promise<void> {
+  async update0(id: number, dto: Strategy): Promise<UpdateResult> {
     dto = {...dto};
     delete dto.id;
     delete dto.createdAt;
@@ -202,11 +202,15 @@ export class StrategiesService {
     delete dto.side;
     delete dto.type;
     delete dto.watchDirection;
-    const updateResult: UpdateResult = await this.repository.update(id, dto);
+    return this.repository.update(id, dto);
+  }
+
+  async update(id: number, dto: Strategy): Promise<void> {
+    const updateResult: UpdateResult = await this.update0(id, dto);
     // this.logger.log(`update affected: ${updateResult.affected}`);
     if (updateResult.affected && updateResult.affected > 0) {
       const strategy = await this.repository.findOne(id);
-      this.runningStrategiesHolder.update(id, strategy);
+      this.runningStrategiesHolder.addOrUpdate(strategy);
     }
   }
 
@@ -233,7 +237,7 @@ export class StrategiesService {
 
     await this.repository.update(id, {status: 'started'});
     st.status = 'started';
-    this.runningStrategiesHolder.add(st);
+    this.runningStrategiesHolder.addOrUpdate(st);
   }
 
   async setStatusPause(id: number): Promise<void> {
@@ -261,7 +265,7 @@ export class StrategiesService {
       beyondExpect: false
     };
     await this.repository.update(id, updater);
-    this.runningStrategiesHolder.update(id, Object.assign(st, updater));
+    this.runningStrategiesHolder.addOrUpdate(Object.assign(st, updater));
   }
 
 

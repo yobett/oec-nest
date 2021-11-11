@@ -44,7 +44,7 @@ export class StrategyExecutorWsService extends StrategyExecutorHelper {
     strategiesService.watchRunningStrategiesChange()
       .subscribe(
         (change: StrategyChange) => this.onRunningStrategyChange(change),
-        this.logger.error);
+        e => this.logger.error(e));
   }
 
   private onRunningStrategyChange(change: StrategyChange): void {
@@ -61,6 +61,9 @@ export class StrategyExecutorWsService extends StrategyExecutorHelper {
       this.refresh();
       return;
     }
+
+    // strategy is not null
+
     if (change.type === 'add') {
       this.runStrategy(strategy);
       return;
@@ -178,7 +181,7 @@ export class StrategyExecutorWsService extends StrategyExecutorHelper {
 
     const saveRate = Config.StrategyExecutorWsConfig.StrategySaveRateSeconds * 1000;
     if (!rs.lastSaveTs || (Date.now() - rs.lastSaveTs) > saveRate) {
-      await this.strategiesService.update(strategy.id, strategy);
+      await this.strategiesService.update0(strategy.id, strategy);
       rs.lastSaveTs = Date.now();
     }
 
@@ -186,7 +189,7 @@ export class StrategyExecutorWsService extends StrategyExecutorHelper {
       return;
     }
 
-    await this.exPriSyncService.syncExAssets(strategy.ex).catch(this.logger.error);
+    await this.exPriSyncService.syncExAssets(strategy.ex).catch(e => this.logger.error(e));
 
     await this.doTrade(strategy, currentPrice, {});
 

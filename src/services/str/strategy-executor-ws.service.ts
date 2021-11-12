@@ -142,7 +142,9 @@ export class StrategyExecutorWsService extends StrategyExecutorHelper {
     const {ex, symbol} = strategy;
     const rate = Config.StrategyExecutorWsConfig.TickerRateSeconds * 1000;
     rs.tickerSubscription = this.wsTickerService.watch(ex, symbol, rate)
-      .subscribe(async (ticker: WsTicker) => this.onTicker(rs, ticker));
+      .subscribe(
+        async (ticker: WsTicker) => this.onTicker(rs, ticker).catch(e => this.logger.error(e)),
+        e => this.logger.error(e));
     this.runningMap.set(strategy.id, rs);
   }
 
@@ -195,6 +197,5 @@ export class StrategyExecutorWsService extends StrategyExecutorHelper {
 
     await this.doAfterTrade(strategy, currentPrice, {});
   }
-
 
 }

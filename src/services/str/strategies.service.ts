@@ -55,7 +55,8 @@ export class StrategiesService {
     const {
       type, ex, symbol, baseCcy, quoteCcy, applyOrder,
       basePoint, expectingPercent, drawbackPercent,
-      tradeVolPercent, tradeVolByValue, tradeVol, executor
+      tradeVolPercent, tradeVolByValue, tradeVol,
+      updateBasePoint, autoStartNext, executor
     } = strategy;
 
     let nextType = type;
@@ -77,7 +78,8 @@ export class StrategiesService {
     Object.assign(next, {
       ex, symbol, baseCcy, quoteCcy, applyOrder,
       basePoint, expectingPercent, drawbackPercent,
-      tradeVolPercent, tradeVolByValue, tradeVol, executor
+      tradeVolPercent, tradeVolByValue, tradeVol,
+      updateBasePoint, autoStartNext, executor
     });
 
     next.basePoint = currentPrice;

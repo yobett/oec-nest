@@ -96,12 +96,20 @@ export class ExPlaceOrderService {
           }
         }
       } else if (ex === Exch.CODE_HB) {
-        if (!quantityByQuote) {
+        if (!quantityByQuote || form.type === 'limit') {
           const symbolInfo = await this.hbPubSyncService.getSymbolInfo(form.symbol);
-          if (symbolInfo) {
+          if (!quantityByQuote) {
             const ap: number = symbolInfo['amount-precision'];
             if (typeof ap === 'number') {
               fractionDigits = ap;
+            }
+          }
+          if (form.type === 'limit') {
+            const pp = symbolInfo['price-precision'];
+            const fd = this.detectFractionDigits(pp);
+            if (fd >= 0) {
+              form.priceStr = form.price.toFixed(fd);
+              priceProcessed = true;
             }
           }
         }

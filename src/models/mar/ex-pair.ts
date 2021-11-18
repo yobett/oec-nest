@@ -11,6 +11,7 @@ export interface PairBQ {
 @Entity()
 @Index(['baseCcy', 'quoteCcy'], {unique: true})
 @Index(['quoteCcy'])
+@Index(['createdAt'])
 @Index(['baSymbol'], {unique: true})
 @Index(['oeSymbol'], {unique: true})
 @Index(['hbSymbol'], {unique: true})

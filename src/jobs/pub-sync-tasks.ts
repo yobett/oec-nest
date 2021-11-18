@@ -15,15 +15,15 @@ export class PubSyncTasks {
   }
 
 
-  @Cron('2 01 * * *', {
-    name: 'syncCurrencies 100',
-    timeZone: Config.Timezone
-  })
-  async syncCurrencies100() {
-    await this.syncCurrencies(100);
-  }
+  // @Cron('2 01 * * *', {
+  //   name: 'syncCurrencies 100',
+  //   timeZone: Config.Timezone
+  // })
+  // async syncCurrencies100() {
+  //   await this.syncCurrencies(100);
+  // }
 
-  @Cron('2 02 * * 1', {
+  @Cron('2 02 * * *', {
     name: 'syncCurrencies 1000',
     timeZone: Config.Timezone
   })
@@ -46,7 +46,7 @@ export class PubSyncTasks {
   }
 
 
-  @Cron('2 03 * * 1', {
+  @Cron('2 03 * * *', {
     name: 'sync Pairs And New Currencies',
     timeZone: Config.Timezone
   })

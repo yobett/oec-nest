@@ -8,6 +8,12 @@ import { Strategy, StrategyFilter } from '../../models/str/strategy';
 import { HistoryStrategiesService } from './history-strategies.service';
 import { StrategyHistory } from '../../models/str/strategy-history';
 import { RunningStrategiesHolder, StrategyChange } from './running-strategies-holder';
+import { PairBQ } from '../../models/mar/ex-pair';
+
+export interface BaseQuoteStrategyCounts extends PairBQ {
+  running: number;
+  all: number;
+}
 
 @Injectable()
 export class StrategiesService {
@@ -135,6 +141,14 @@ export class StrategiesService {
         if (filter.status !== 'started') {
           allRunning = false;
         }
+      }
+      if (filter.baseCcy) {
+        where.baseCcy = filter.baseCcy;
+        allRunning = false;
+      }
+      if (filter.quoteCcy) {
+        where.quoteCcy = filter.quoteCcy;
+        allRunning = false;
       }
     }
     const strategies = await this.repository.find({
@@ -297,4 +311,18 @@ export class StrategiesService {
     await this.repository.delete(id);
     this.runningStrategiesHolder.remove(id);
   }
+
+  async countByBaseQuote(): Promise<BaseQuoteStrategyCounts[]> {
+    const sql = 'select baseCcy,quoteCcy,sum(if(status=\'started\',1,0)) running,count(*) `all` ' +
+      'from strategy group by baseCcy,quoteCcy';
+    const cs: any[] = await this.repository.query(sql);
+    return cs.map(c => ({
+        baseCcy: c.baseCcy,
+        quoteCcy: c.quoteCcy,
+        running: +c.running,
+        all: +c.all
+      })
+    );
+  }
+
 }

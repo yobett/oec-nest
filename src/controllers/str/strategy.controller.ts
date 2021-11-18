@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { StrategiesService } from '../../services/str/strategies.service';
+import { BaseQuoteStrategyCounts, StrategiesService } from '../../services/str/strategies.service';
 import { ListResult, Result, ValueResult } from '../../models/result';
 import { Strategy, StrategyFilter } from '../../models/str/strategy';
 import { StrategyExecutionOptions, StrategyExecutorService } from '../../services/str/strategy-executor.service';
@@ -17,21 +17,15 @@ export class StrategyController {
   }
 
   @Get()
-  async findAll(@Query('type') type: string,
-                @Query('ex') ex: string,
-                @Query('side') side: string,
-                @Query('status') status: string): Promise<ListResult<Strategy>> {
-    const filter: StrategyFilter = {type, ex, side, status};
+  async findAll(@Query() filter: StrategyFilter): Promise<ListResult<Strategy>> {
     const list: Strategy[] = await this.strategiesService.findAll(filter);
     return ListResult.list(list);
   }
 
   @Get('type/:type')
   async findByType(@Param('type') type: string,
-                   @Query('ex') ex: string,
-                   @Query('side') side: string,
-                   @Query('status') status: string): Promise<ListResult<Strategy>> {
-    const filter: StrategyFilter = {type, ex, side, status};
+                   @Query() filter: StrategyFilter): Promise<ListResult<Strategy>> {
+    filter.type = type;
     const list: Strategy[] = await this.strategiesService.findAll(filter);
     return ListResult.list(list);
   }
@@ -133,5 +127,11 @@ export class StrategyController {
   async executeForType(@Param('type') type: string): Promise<Result> {
     await this.executorsService.executeAll({type, ignoreInterval: true, context: 'web'});
     return Result.success();
+  }
+
+  @Get('count/bq')
+  async countByBaseQuote(): Promise<ListResult<BaseQuoteStrategyCounts>> {
+    const cs = await this.strategiesService.countByBaseQuote();
+    return ListResult.list(cs);
   }
 }

@@ -120,4 +120,6 @@ export interface StrategyFilter {
   ex?: string;
   side?: string;
   status?: string;
+  baseCcy?: string;
+  quoteCcy?: string;
 }

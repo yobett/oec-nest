@@ -1,9 +1,12 @@
 import { Column, Entity, Index } from 'typeorm';
-import { Model } from '../model';
 import { PartialType } from '@nestjs/mapped-types';
+import { Model } from '../model';
 
 @Entity()
+@Index(['code'], {unique: true})
+@Index(['name'])
 @Index(['no'])
+@Index(['cmcAddedDate'])
 export class Ccy extends Model {
 
   @Column({unique: true})
@@ -27,6 +30,9 @@ export class Ccy extends Model {
 
   @Column('boolean', {nullable: true})
   concerned: boolean;
+
+  @Column({nullable: true})
+  cmcAddedDate: Date;
 }
 
 

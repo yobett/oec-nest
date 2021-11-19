@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpService, Injectable } from '@nestjs/common';
 import { join } from 'path';
 import * as fs from 'fs';
 import { SyncResult } from '../../../models/sync-result';
@@ -15,7 +15,8 @@ import { ExPairsService } from '../../mar/pairs.service';
 @Injectable()
 export class CmcSyncService {
 
-  constructor(private cmcApiService: CmcApiService,
+  constructor(private httpService: HttpService,
+              private cmcApiService: CmcApiService,
               private ccysService: CcysService,
               private exapisService: ExapisService,
               private pairsService: ExPairsService
@@ -88,21 +89,23 @@ export class CmcSyncService {
 
     const coins = await this.cmcApiService.coinsMap(api, opts);
     for (const coin of coins) {
-      const {name, symbol, rank, slug} = coin;
+      const {name, symbol, rank, slug, first_historical_data} = coin;
       if (!/^[A-Za-z0-9]+$/.test(symbol)) {
         console.log('Ignore: ' + symbol);
         continue;
       }
+      const cmcAddedDate = new Date(first_historical_data);
 
       const ccy = ccyMap.get(symbol);
       if (ccy) {
         const logoFileExists = this.checkLogoFileExists(ccy.logoPath, symbol);
-        if (!logoFileExists) {
+        if (!logoFileExists || !ccy.logoPath) {
           loadLogoSymbols.push(symbol);
         }
 
         if (ccy.name === name &&
           ccy.slug === slug &&
+          ccy.cmcAddedDate &&
           (ccy.no === rank || !updateRank) &&
           logoFileExists) {
           syncResult.skip++;
@@ -111,6 +114,7 @@ export class CmcSyncService {
 
         ccy.name = name;
         ccy.slug = slug;
+        ccy.cmcAddedDate = cmcAddedDate;
         ccy.no = rank;
         if (!ccy.logoPath || !logoFileExists) {
           loadLogoSymbols.push(symbol);
@@ -122,6 +126,7 @@ export class CmcSyncService {
         newCcy.code = symbol;
         newCcy.name = symbol;
         newCcy.no = rank;
+        newCcy.cmcAddedDate = cmcAddedDate;
         loadLogoSymbols.push(symbol);
         ccysToSaveMap.set(symbol, newCcy);
         ccyMap.set(symbol, newCcy);
@@ -151,10 +156,11 @@ export class CmcSyncService {
           const file = symbol + '.png';
           const logoPath = coinsDir + '/' + file;
           try {
-            await download(logoUrl, logoPath);
+            await download(logoUrl, logoPath, this.httpService);
 
             const ccy = ccyMap.get(symbol);
             ccy.logoPath = logoPath;
+            ccysToSaveMap.set(symbol, ccy);
           } catch (e) {
             console.error(e);
           }
@@ -279,7 +285,7 @@ export class CmcSyncService {
             const file = symbol + '.png';
             const logoPath = coinsDir + '/' + file;
             try {
-              await download(logoUrl, logoPath);
+              await download(logoUrl, logoPath, this.httpService);
 
               ccy.logoPath = logoPath;
             } catch (e) {

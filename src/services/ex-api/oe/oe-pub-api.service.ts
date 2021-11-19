@@ -3,7 +3,7 @@ import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { JSDOM } from 'jsdom';
 import { join } from 'path';
 import { Config } from '../../../common/config';
-import { download, defaultReqConfig } from '../../../common/utils';
+import { defaultReqConfig, download } from '../../../common/utils';
 import { CreateCcyDto } from '../../../models/mar/ccy';
 import { Kline } from '../../../models/mar/kline';
 
@@ -87,7 +87,7 @@ export class OePubApiService {
       if (imgUrl) {
         try {
           const coinsDir = Config.STATIC_RES_DIR.coins;
-          await download(imgUrl, join(coinsDir, file));
+          await download(imgUrl, join(coinsDir, file), this.httpService);
           ccyDto.logoPath = coinsDir + '/' + file;
         } catch (e) {
           console.error(e);

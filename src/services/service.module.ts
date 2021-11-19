@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { HttpModule, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Provider } from '@nestjs/common/interfaces/modules/provider.interface';
 import { ConsoleModule } from 'nestjs-console';
@@ -64,7 +64,7 @@ const services: Provider[] = [
 
 @Module({
   imports: [
-    RapiModule,
+    HttpModule, RapiModule,
     TypeOrmModule.forFeature([Exch, Exapi,
       Ccy, ExPair, Asset, AssetSnapshot, SpotOrder, LastTransaction,
       Strategy, StrategyHistory

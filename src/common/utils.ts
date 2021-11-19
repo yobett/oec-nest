@@ -1,16 +1,16 @@
-import fetch from 'node-fetch';
+import { HttpService } from '@nestjs/common';
 import * as path from 'path';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
 import * as crypto from 'crypto';
-import { AxiosRequestConfig } from 'axios';
+import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { Like } from 'typeorm';
 import { FindConditions } from 'typeorm/find-options/FindConditions';
+import { ClientOptions } from 'ws';
 
 import { Config } from './config';
-import { ClientOptions } from 'ws';
 
 
 const streamPipeline = promisify(pipeline);
@@ -22,7 +22,7 @@ export function md5Digest(str: string): string {
   return hash.digest('hex');
 }
 
-export async function download(url: string, savePath: string): Promise<unknown> {
+export async function download(url: string, savePath: string, httpService: HttpService): Promise<unknown> {
 
   const targetPath = path.join(Config.STATIC_RES_DIR.BASE, savePath);
 
@@ -31,10 +31,12 @@ export async function download(url: string, savePath: string): Promise<unknown> 
     return null;
   }
 
-  const response = await fetch(url);
+  const requestConfig: AxiosRequestConfig = defaultReqConfig();
+  requestConfig.responseType = 'stream';
+  const response: AxiosResponse = await httpService.get(url, requestConfig).toPromise();
   console.log('Fetch: ' + url);
 
-  if (!response.ok) throw new Error(`下载失败：${response.statusText}`);
+  if (response.status !== 200) throw new Error(`下载失败：${response.statusText}`);
 
   console.log('Save to: ' + targetPath);
 
@@ -43,7 +45,7 @@ export async function download(url: string, savePath: string): Promise<unknown> 
     mkdirSync(dir, {recursive: true});
   }
 
-  await streamPipeline(response.body, createWriteStream(targetPath));
+  await streamPipeline(response.data, createWriteStream(targetPath));
 
   return null;
 }

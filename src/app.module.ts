@@ -28,6 +28,7 @@ import { Config } from './common/config';
 import { NotificationsController } from './controllers/sys/notifications.controller';
 import { UserProfileController } from './controllers/sys/user-profile.controller';
 import { RollingPricesController } from './controllers/mar/rolling-prices.controller';
+import { CcyListingsController } from './controllers/mar/ccy-listings.controller';
 
 @Module({
   imports: [
@@ -43,7 +44,7 @@ import { RollingPricesController } from './controllers/mar/rolling-prices.contro
     AppController, SessionController, UserProfileController, UsersController,
     ExchsController, NotificationsController,
     CcysController, PairsController, ExapisController, JobsController,
-    KlinesController, CcyQuotesController, RollingPricesController,
+    KlinesController, CcyQuotesController, RollingPricesController, CcyListingsController,
     AssetsController, AssetSnapshotController, SpotOrdersController, LastTransController,
     DataSyncPubController, DataSyncPriController,
     StrategyController, StrategyHistoryController

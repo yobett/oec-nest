@@ -7,7 +7,7 @@ import { CmcApiService } from '../../ex-api/cmc/cmc-api.service';
 import { Ccy } from '../../../models/mar/ccy';
 import { download } from '../../../common/utils';
 import { Config } from '../../../common/config';
-import { CcyMeta } from '../../ex-api/cmc/ccy-meta';
+import { CcyMeta } from '../../../models/mar/ccy-meta';
 import { API, Exapi } from '../../../models/sys/exapi';
 import { ExapisService } from '../../sys/exapis.service';
 import { ExPairsService } from '../../mar/pairs.service';
@@ -40,7 +40,7 @@ export class CmcSyncService {
     return await this.syncCurrenciesForSymbols(
       api,
       symbols,
-      newOnly);
+      {newOnly});
   }
 
   checkLogoFileExists(logoPath: string | undefined, symbol: string): boolean {
@@ -180,7 +180,11 @@ export class CmcSyncService {
 
   async syncCurrenciesForSymbols(api: API,
                                  allSymbols: string[],
-                                 newOnly = false): Promise<SyncResult> {
+                                 opts: {
+                                   newOnly?: boolean,
+                                   ccyMap?: Map<string, Ccy>,
+                                   cmcRanksMap?: Map<string, number>
+                                 } = {}): Promise<SyncResult> {
     if (!api) {
       throw new Error('API未配置（CMC）');
     }
@@ -191,19 +195,17 @@ export class CmcSyncService {
       return syncResult;
     }
 
-    let ccys;
-    if (allSymbols.length < 100) {
+    let ccys: Ccy[];
+    if (allSymbols.length <= 100) {
       ccys = await this.ccysService.findByCodes(allSymbols);
     } else {
       ccys = await this.ccysService.findAll();
     }
 
-    const ccyMap: Map<string, Ccy> = new Map<string, Ccy>();
-    for (const ccy of ccys) {
-      ccyMap.set(ccy.code, ccy);
-    }
+    const ccyMap = new Map<string, Ccy>(ccys.map(ccy => [ccy.code, ccy]));
+    opts.ccyMap = ccyMap;
 
-    if (newOnly) {
+    if (opts.newOnly) {
       allSymbols = allSymbols.filter(s => !ccyMap.get(s));
       if (allSymbols.length === 0) {
         return syncResult;
@@ -268,8 +270,13 @@ export class CmcSyncService {
         if (!ccy) {
           ccy = new Ccy();
           ccy.code = meta.symbol;
-          const rand = Math.round(Math.random() * 5000);
-          ccy.no = 5000 + rand;
+          if (opts.cmcRanksMap) {
+            ccy.no = opts.cmcRanksMap.get(ccy.code);
+          }
+          if (!ccy.no) {
+            const rand = Math.round(Math.random() * 5000);
+            ccy.no = 5000 + rand;
+          }
         }
 
         const logoUrl = meta.logo;

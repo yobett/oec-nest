@@ -77,7 +77,7 @@ export class DataSyncPubController {
     // if (newCodes.length === 0) {
     //   return;
     // }
-    await this.cmcSyncService.syncCurrenciesForSymbols(api, codes, true);
+    await this.cmcSyncService.syncCurrenciesForSymbols(api, codes, {newOnly: true});
 
     return ValueResult.value(stat);
   }

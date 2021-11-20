@@ -1,4 +1,4 @@
-export class Quote {
+export interface Quote {
   symbol: string;
   price: number;
   volume_24h: number;

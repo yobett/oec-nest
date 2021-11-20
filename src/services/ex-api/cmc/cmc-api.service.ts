@@ -2,9 +2,19 @@ import { HttpService, Injectable } from '@nestjs/common';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { catchError } from 'rxjs/operators';
 import { Config } from '../../../common/config';
-import { CcyMeta } from './ccy-meta';
+import { CcyMeta } from '../../../models/mar/ccy-meta';
 import { API } from '../../../models/sys/exapi';
 import { defaultReqConfig } from '../../../common/utils';
+import { CcyListingWithStatus } from '../../../models/mar/ccy-listing-item';
+
+export interface ListingOptions {
+  convert?: string;
+  sort?: string;
+  sort_dir?: 'asc' | 'desc';
+  aux?: string;
+  start?: string | number; // 1 based
+  limit?: string | number; // default: first 100
+}
 
 @Injectable()
 export class CmcApiService {
@@ -91,13 +101,14 @@ export class CmcApiService {
     return body.data;
   }
 
-  async listings(api: API, opts: {
-    convert?: string,
-    aux?: string,
-    start?: string | number, // 1 based
-    limit?: string | number // default: first 100
-  } = {}): Promise<any> {
+  async listings(api: API, opts: ListingOptions = {}): Promise<CcyListingWithStatus> {
     let paramStr = `?convert=${opts.convert || 'USD'}`;
+    if (opts.sort) {
+      paramStr = paramStr + '&sort=' + opts.sort;
+    }
+    if (opts.sort_dir) {
+      paramStr = paramStr + '&sort_dir=' + opts.sort_dir;
+    }
     if (opts.aux) {
       paramStr = paramStr + '&aux=' + opts.aux;
     }
@@ -108,8 +119,7 @@ export class CmcApiService {
       paramStr = paramStr + '&limit=' + opts.limit;
     }
     const path = '/v1/cryptocurrency/listings/latest' + paramStr;
-    const body = await this.getData(api, path);
-    return body.data;
+    return await this.getData(api, path);
   }
 
 

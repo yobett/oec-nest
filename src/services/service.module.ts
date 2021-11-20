@@ -47,6 +47,7 @@ import { ArbitrageService } from './mar/arbitrage.service';
 import { ExPendingOrdersHolder } from './ex-sync/ex-pending-orders-holder';
 import { RollingPriceService } from './mar/rolling-price.service';
 import { StrategyExecutorWsService } from './str/strategy-executor-ws.service';
+import { CcyListingService } from './mar/ccy-listing.service';
 
 const services: Provider[] = [
   UsersService, ExchsService, ExapisService, NotificationService,
@@ -58,7 +59,7 @@ const services: Provider[] = [
   OePubSyncService, OePriSyncService,
   HbPubSyncService, HbPriSyncService,
   CmcSyncService, ExPriSyncService, ExPubSyncService,
-  ExPlaceOrderService, ExPendingOrdersHolder, RollingPriceService,
+  ExPlaceOrderService, ExPendingOrdersHolder, RollingPriceService, CcyListingService,
   StrategiesService, StrategyExecutorService, HistoryStrategiesService, StrategyExecutorWsService
 ];
 

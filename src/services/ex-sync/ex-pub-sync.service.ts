@@ -57,7 +57,7 @@ export class ExPubSyncService {
       throw new Error('API未配置（CMC）');
     }
 
-    await this.cmcSyncService.syncCurrenciesForSymbols(api, codes, true);
+    await this.cmcSyncService.syncCurrenciesForSymbols(api, codes, {newOnly: true});
 
     delete oe.payload;
     delete ba.payload;

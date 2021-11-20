@@ -1,7 +1,7 @@
 import { Quote } from './quote';
 import { Ccy } from './ccy';
 
-interface CcyListingItemBase {
+export interface CcyListingItemBase {
   id: number;
   name: string;
   symbol: string;

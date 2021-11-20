@@ -4,6 +4,8 @@ import { Cron } from '@nestjs/schedule';
 import { CmcSyncService } from '../services/ex-sync/cmc/cmc-sync.service';
 import { ExPubSyncService } from '../services/ex-sync/ex-pub-sync.service';
 import { Config } from '../common/config';
+import { CcyListingService } from '../services/mar/ccy-listing.service';
+import { ListingOptions } from '../services/ex-api/cmc/cmc-api.service';
 
 
 @Injectable()
@@ -11,7 +13,8 @@ export class PubSyncTasks {
   private readonly logger = new Logger(PubSyncTasks.name);
 
   constructor(private cmcSyncService: CmcSyncService,
-              private exPubSyncService: ExPubSyncService) {
+              private exPubSyncService: ExPubSyncService,
+              private ccyListingService: CcyListingService) {
   }
 
 
@@ -72,4 +75,31 @@ export class PubSyncTasks {
     const resultStr = JSON.stringify(stat, null, 2);
     this.logger.debug('同步交易对中的新币种，结果：\n' + resultStr);
   }*/
+
+
+  @Cron('15 0 * * *', {
+    name: 'syncCcyListing',
+    timeZone: Config.Timezone
+  })
+  async syncCcyListing() {
+
+    const opts: ListingOptions = {
+      sort: 'date_added',
+      sort_dir: 'desc',
+      limit: 50,
+      start: 1
+    };
+
+    this.logger.debug(`同步新币种 ...`);
+    let stat = await this.ccyListingService.listingForSync(opts);
+    let resultStr = JSON.stringify(stat, null, 2);
+    this.logger.debug(`同步新币种 \n` + resultStr);
+
+    opts.sort = 'percent_change_24h';
+    this.logger.debug(`同步增长最快币种（24H） ...`);
+    stat = await this.ccyListingService.listingForSync(opts);
+    resultStr = JSON.stringify(stat, null, 2);
+    this.logger.debug(`同步增长最快币种（24H） \n` + resultStr);
+  }
+
 }

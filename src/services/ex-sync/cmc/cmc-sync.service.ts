@@ -11,6 +11,7 @@ import { CcyMeta } from '../../../models/mar/ccy-meta';
 import { API, Exapi } from '../../../models/sys/exapi';
 import { ExapisService } from '../../sys/exapis.service';
 import { ExPairsService } from '../../mar/pairs.service';
+import { CcyListingItemBase } from '../../../models/mar/ccy-listing-item';
 
 @Injectable()
 export class CmcSyncService {
@@ -183,7 +184,7 @@ export class CmcSyncService {
                                  opts: {
                                    newOnly?: boolean,
                                    ccyMap?: Map<string, Ccy>,
-                                   cmcRanksMap?: Map<string, number>
+                                   ccyListingMap?: Map<string, CcyListingItemBase>
                                  } = {}): Promise<SyncResult> {
     if (!api) {
       throw new Error('API未配置（CMC）');
@@ -270,8 +271,12 @@ export class CmcSyncService {
         if (!ccy) {
           ccy = new Ccy();
           ccy.code = meta.symbol;
-          if (opts.cmcRanksMap) {
-            ccy.no = opts.cmcRanksMap.get(ccy.code);
+          if (opts.ccyListingMap) {
+            const li: CcyListingItemBase = opts.ccyListingMap.get(ccy.code);
+            if (li) {
+              ccy.no = li.cmc_rank;
+              ccy.cmcAddedDate = new Date(li.date_added);
+            }
           }
           if (!ccy.no) {
             const rand = Math.round(Math.random() * 5000);

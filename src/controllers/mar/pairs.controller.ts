@@ -1,6 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, } from '@nestjs/common';
-import { CurrentPrices, PriceRequest, PriceResponse } from '../../services/mar/current-price.service';
-import { ArbAnalysing } from '../../services/mar/arbitrage.service';
+import { ArbAnalysing, ArbitrageService } from '../../services/mar/arbitrage.service';
 import { ExPairsService } from '../../services/mar/pairs.service';
 import { CreateExPairDto, ExchangePair, ExchangePairsResult, ExPair, UpdateExPairDto } from '../../models/mar/ex-pair';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -10,13 +9,11 @@ import { QueryFilter } from '../../common/decorators/query-filter.decorator';
 import { QueryParams } from '../../models/query-params';
 import { LastTransaction } from '../../models/per/last-transaction';
 import { LastTransactionService } from '../../services/per/last-transaction.service';
-import { CurrentPriceService } from '../../services/mar/current-price.service';
 import { BaPubApiService } from '../../services/ex-api/ba/ba-pub-api.service';
 import { OePubApiService } from '../../services/ex-api/oe/oe-pub-api.service';
 import { HbPubApiService } from '../../services/ex-api/hb/hb-pub-api.service';
 import { Exch } from '../../models/sys/exch';
 import { HbPubSyncService } from '../../services/ex-sync/hb/hb-pub-sync.service';
-import { ArbitrageService } from '../../services/mar/arbitrage.service';
 
 declare type PnLT = ExPair & { lastTrans: LastTransaction };
 
@@ -25,7 +22,6 @@ declare type PnLT = ExPair & { lastTrans: LastTransaction };
 @Roles('admin')
 export class PairsController {
   constructor(private pairsService: ExPairsService,
-              private currentPriceService: CurrentPriceService,
               private arbitrageService: ArbitrageService,
               private ltService: LastTransactionService,
               private baPubApiService: BaPubApiService,
@@ -98,21 +94,6 @@ export class PairsController {
     return ListResult.list(pnlts);
   }
 
-  @Post('concern/inquirePrices')
-  async inquireConcernedPrices(@Query('preferDS') preferDS: string = null): Promise<ValueResult<CurrentPrices>> {
-    const prices = await this.currentPriceService.inquireConcernedPrices(preferDS);
-    return ValueResult.value(prices);
-  }
-
-  @Post('inquirePrices')
-  async inquirePricesEx(@Body() priceRequests: PriceRequest[]): Promise<ListResult<PriceResponse>> {
-    if (!priceRequests || priceRequests.length === 0) {
-      return ListResult.list([]);
-    }
-    const res: PriceResponse[] = await this.currentPriceService.inquirePricesEx(priceRequests);
-    return ListResult.list(res);
-  }
-
   @Get('exchangeInfo/:ex/:symbol')
   async exchangeInfo(@Param('ex') ex: string,
                      @Param('symbol') symbol: string): Promise<ValueResult<any>> {
@@ -147,13 +128,6 @@ export class PairsController {
   //   await this.arbitrageService.checkArbitrage();
   //   return Result.success();
   // }
-
-  @Get('ticker/:ex/:symbol')
-  async inquirePrice(@Param('ex') ex: string,
-                     @Param('symbol') symbol: string): Promise<ValueResult<number | string>> {
-    const price = await this.currentPriceService.inquirePrice(ex, symbol);
-    return ValueResult.value(price);
-  }
 
   @Get(':id')
   async getById(@Param('id') id: string): Promise<ValueResult<ExPair>> {

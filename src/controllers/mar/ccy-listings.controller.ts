@@ -1,8 +1,5 @@
 import { Controller, Get, UseGuards, } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { BaPubApiService } from '../../services/ex-api/ba/ba-pub-api.service';
-import { OePubApiService } from '../../services/ex-api/oe/oe-pub-api.service';
-import { HbPubApiService } from '../../services/ex-api/hb/hb-pub-api.service';
 import { CountList, CountListResult } from '../../models/result';
 import { CcyListingService } from '../../services/mar/ccy-listing.service';
 import { ListingOptions } from '../../services/ex-api/cmc/cmc-api.service';
@@ -14,10 +11,7 @@ import { CcyListingItem } from '../../models/mar/ccy-listing-item';
 @UseGuards(JwtAuthGuard)
 export class CcyListingsController {
 
-  constructor(private baPubApiService: BaPubApiService,
-              private oePubApiService: OePubApiService,
-              private hbPubApiService: HbPubApiService,
-              private ccyListingService: CcyListingService) {
+  constructor(private ccyListingService: CcyListingService) {
   }
 
   @Get('page')

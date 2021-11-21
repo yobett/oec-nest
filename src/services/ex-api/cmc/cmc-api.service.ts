@@ -14,6 +14,7 @@ export interface ListingOptions {
   aux?: string;
   start?: string | number; // 1 based
   limit?: string | number; // default: first 100
+  volume_24h_min?: string | number;
 }
 
 @Injectable()
@@ -111,6 +112,9 @@ export class CmcApiService {
     }
     if (opts.aux) {
       paramStr = paramStr + '&aux=' + opts.aux;
+    }
+    if (!isNaN(+opts.volume_24h_min)) {
+      paramStr = paramStr + '&volume_24h_min=' + opts.volume_24h_min;
     }
     if (opts.start) {
       paramStr = paramStr + '&start=' + opts.start;

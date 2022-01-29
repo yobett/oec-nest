@@ -1,9 +1,6 @@
-export declare type Ring = string[];
+import { PairBQ } from '../../models/mar/ex-pair';
 
-export interface PairModel {
-  baseCcy: string,
-  quoteCcy: string;
-}
+export declare type Ring = string[];
 
 declare type CandidateRing = Ring;
 
@@ -29,7 +26,7 @@ export interface ValueChain {
 export class Arbitrage {
 
   private readonly maxLength: number;
-  private readonly pairs: PairModel[];
+  private readonly pairs: PairBQ[];
   // baseCcy -> quoteCcy[]
   private csMap: Map<string, string[]>;
 
@@ -39,7 +36,7 @@ export class Arbitrage {
 
   arbRoutes: ValueChain[];
 
-  constructor(pairs: PairModel[], maxLength = 4) {
+  constructor(pairs: PairBQ[], maxLength = 4) {
     this.pairs = pairs;
     this.maxLength = maxLength;
 

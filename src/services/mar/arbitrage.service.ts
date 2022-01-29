@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Command, Console, createSpinner } from 'nestjs-console';
 
 import { ExPair } from '../../models/mar/ex-pair';
-import { Arbitrage, PairModel, Ring, ValueChain } from './arbitrage';
+import { Arbitrage, Ring, ValueChain } from './arbitrage';
 import { CurrentPriceService } from './current-price.service';
 import { ExPairsService } from './pairs.service';
 
@@ -30,7 +30,7 @@ export class ArbitrageService {
     }
     const pairs = allPairs.filter(p => p.baSymbol);
 
-    const arb = new Arbitrage(pairs as PairModel[]);
+    const arb = new Arbitrage(pairs);
     arb.findRings();
     // arb.printRings();
 
@@ -68,7 +68,7 @@ export class ArbitrageService {
     }
     const pairs = allPairs.filter(p => p.oeSymbol);
 
-    const arb = new Arbitrage(pairs as PairModel[]);
+    const arb = new Arbitrage(pairs);
     arb.findRings();
     // arb.printRings();
     console.log('-----');
@@ -99,7 +99,7 @@ export class ArbitrageService {
     }
     const pairs = allPairs.filter(p => p.hbSymbol);
 
-    const arb = new Arbitrage(pairs as PairModel[]);
+    const arb = new Arbitrage(pairs);
     arb.findRings();
     // arb.printRings();
     console.log('-----');
